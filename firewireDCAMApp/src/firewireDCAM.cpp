@@ -428,7 +428,7 @@ void FirewireDCAM::imageGrabTask()
 	int numImages, numImagesCounter;
 	int imageMode;
 	int arrayCallbacks;
-	int maxDims[2+this->colour];
+	int maxDims[3];
 	NDDataType_t dataType;
 	epicsTimeStamp startTime;
 	int acquire, addr;
