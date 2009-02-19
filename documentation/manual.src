@@ -15,7 +15,7 @@ This module uses a set of open source libraries to control the cameras. The main
 
 Digital video recorders with tapes or other local memory typically does not comply with the IIDC DCAM protocol! Cameras that produce compressed images are not supported either. This module does not and is not planned to provide any compression or decompression features. If such feature is needed it is recommended to develop a compression plug-in to the areaDetector framework.
 
-The module supports both 1394A [400Mb\\s] and 1394B [800Mb\\s] mode cameras but only in 8 bit per pixel MONO mode!
+The module supports both 1394A [400Mb\\s] and 1394B [800Mb\\s] mode cameras but only in 8 bit per pixel MONO mode, and 24 bits per pixel RGB mode!
 
 \section download Where to get it
 Released versions of the module can be downloaded as source code tarballs from the Diamond website. See <a href="http://controls.diamond.ac.uk/downloads">DLS controls</a> "EPICS support modules".
@@ -198,7 +198,7 @@ This is a list of tasks and things that are currently not implemented in this ve
  - It could be a useful diagnostic tool to have an indication of how full the DMA buffer is in the libdc1394 library. 
  - The API allow reading out this information and it should be a simple job to add.
 \li Using the more powerful scalable format7 mode. The format7 mode is a scalable 'Region Of Interest' mode where a ROI (just one) on the image sensor can be selected and transferred over the bus.
- - Currently the driver only works on the fixed size modes (it selects the largest fixed-size mode with 8bit per pixel mono)
+ - Currently the driver only works on the fixed size modes (it selects the largest fixed-size mode with 8bit per pixel mono or 24bit per pixel RGB)
  - Larger parts of the camera sensor can be used as several cameras have bigger CCDs than the fixed-size modes can handle.
  - Would allow several more cameras to run at the same time as bandwidth can be cut down when only using a small ROI.
  - Higher framerates can be achieved with smaller ROI.

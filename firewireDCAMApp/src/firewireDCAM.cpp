@@ -164,7 +164,7 @@ extern "C" int FDC_InitBus(void)
  *                   which will all need to be added up in this parameter.
  * \param maxMemory Maximum memory (in bytes) that this driver is allowed to allocate. So if max. size = 1024x768 (8bpp)
  *                  and maxBuffers is, say 14. maxMemory = 1024x768x14 = 11010048 bytes (~11MB)
- * \param colour Colour mode to run the camera in. 0 = MONO8, 1 = RGB8
+ * \param colour Colour mode to run the camera in. 0 = MONO8, 1 = RGB8. Remember to multiply maxMemory by 3 if you set this
  */
 extern "C" int FDC_Config(const char *portName, const char* camid, int speed, int maxBuffers, size_t maxMemory, int colour)
 {
@@ -227,6 +227,7 @@ static void imageGrabTaskC(void *drvPvt)
  * \param speed The bus speed to use this camera at. Can be 800[Mb/s] for 1394B mode or 400[Mb/s] for 1394A mode.
  * \param maxBuffers The largest number of image buffers this driver can create.
  * \param maxMemory The maximum amount of memory in bytes that the driver can allocate for images.
+ * \param colour 0 for MONO8 mode, 1 for RGB8 mode
  */
 FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 							int maxBuffers, size_t maxMemory, int colour )

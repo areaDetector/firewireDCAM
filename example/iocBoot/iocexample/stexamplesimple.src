@@ -15,9 +15,10 @@ FDC_InitBus()
 #     NDStdArrays: 3
 #     NDROI: 9 (1 per ROI)
 #     = 14 buffers in total.
-# Max memory (arg4) in bytes: 1024x768x1 x 14 buffers = 11010048
-#FDC_Config("CAM8", 0x00B09D01007DE464, 1, 14, 11010048)
-FDC_Config("CAM8", 0x00b09d01007139d0, 1, 14, 11010048)
+# Max memory (arg4) in bytes: 1024x768x1 x 14 buffers = 11010048, need 3x this if in RGB mode
+# arg5 = colour mode (B+W)
+#FDC_Config("CAM8", 0x00B09D01007DE464, 1, 14, 11010048, 0)
+FDC_Config("CAM8", 0x00b09d01007139d0, 1, 14, 11010048, 0)
 
 
 dbLoadRecords("/home/up45/support/firewireDCAM/db/firewireDCAM.db", "P=CAM8:,CAM=1, PORT=CAM8")
