@@ -48,7 +48,7 @@ example_OBJS_vxWorks += $(EPICS_BASE_BIN)/vxComLibrary
 # xxx Support Module
 example_LIBS += asyn
 example_LIBS += firewireDCAM
-example_LIBS += ADPlugin ADBase
+example_LIBS += NDPlugin ADBase
 example_LIBS += calc sscan
 # Comment next line out if libdc1394 is *not* build as an EPICS module
 example_LIBS += dc1394  
