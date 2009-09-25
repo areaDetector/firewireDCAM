@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<components arch="linux-x86">
+	<firewireDCAM.firewireDCAM_feature FEAT="FEAT" P="P" CAM="CAM" PORT="PORT" NUM="NUM"/>
+	<firewireDCAM.firewireDCAM P="P" CAM="CAM" PORT="PORT"/>
+	<firewireDCAM.firewireDCAM_framerate P="P" CAM="CAM" PORT="PORT"/>
+</components>
