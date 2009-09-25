@@ -1,1 +1,4 @@
-# Include override doxygen config values here
+
+FILE_PATTERNS += Makefile *.db
+INPUT += ../../example/exampleApp/src
+#IMAGE_PATH=../images

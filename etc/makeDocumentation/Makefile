@@ -8,10 +8,10 @@ DEBUG :=
 DOCDIR := $(TOP)/documentation/doxygen
 
 # add the documentation files to the install target
-install: $(DOCDIR)/build_instructions $(TOP)/documentation/index.html
+install: $(TOP)/documentation/index.html #$(DOCDIR)/build_instructions 
 
 # rule for documentation
-$(TOP)/documentation/index.html: config.src manual.src $(DOCDIR)/build_instructions
+$(TOP)/documentation/index.html: config.src manual.src #$(DOCDIR)/build_instructions
 	mkdir -p $(DOCDIR)
 	/dls_sw/work/common/python/documentation/src/documentation.py -o $(DOCDIR) config.src manual.src
 	cd $(TOP)/documentation; ln -s doxygen/index.html
