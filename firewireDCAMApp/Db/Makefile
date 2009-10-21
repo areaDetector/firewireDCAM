@@ -7,9 +7,9 @@ include $(TOP)/configure/CONFIG
 #  Optimization of db files using dbst (DEFAULT: NO)
 #DB_OPT = YES
 
-
 DB += firewireDCAM.db
-
+DB += firewireDCAM_feature.db
+DB += firewireDCAM_framerate.db
 
 include $(TOP)/configure/RULES
 #----------------------------------------

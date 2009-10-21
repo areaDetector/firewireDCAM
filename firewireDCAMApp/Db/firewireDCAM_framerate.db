@@ -1,0 +1,43 @@
+## Change the framerate when the camera is not in the ROI/format7 mode
+record(mbbo, "$(P)$(CAM):FR") {
+  field(SCAN, "Passive")
+  field(PINI, "NO")
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT) 0)FDC_FRAMERATE")
+  field(ZRST, "N/A")
+  field(ONST, "1.875")
+  field(TWST, "3.75")
+  field(THST, "7.5")
+  field(FRST, "15")
+  field(FVST, "30")
+  field(SXST, "60")
+  field(ZRVL, "0x0")
+  field(ONVL, "0x1")
+  field(TWVL, "0x2")
+  field(THVL, "0x3")
+  field(FRVL, "0x4")
+  field(FVVL, "0x5")
+  field(SXVL, "0x6")
+}
+
+## Read back the framerate setting when not in ROI/format7 mode.
+record(mbbi, "$(P)$(CAM):FR_RBV") {
+  field(SCAN, "I/O Intr")
+  #field(PINI, "YES")
+  field(DTYP, "asynInt32")
+  field(ZRST, "N/A")
+  field(ONST, "1.875")
+  field(TWST, "3.75")
+  field(THST, "7.5")
+  field(FRST, "15")
+  field(FVST, "30")
+  field(SXST, "60")
+  field(INP, "@asyn($(PORT) 0)FDC_FRAMERATE")
+  field(ZRVL, "0x0")
+  field(ONVL, "0x1")
+  field(TWVL, "0x2")
+  field(THVL, "0x3")
+  field(FRVL, "0x4")
+  field(FVVL, "0x5")
+  field(SXVL, "0x6")
+}

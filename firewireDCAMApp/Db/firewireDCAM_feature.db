@@ -1,0 +1,102 @@
+# ---------------- Feature $(FEAT) control ----------------
+
+# Set the $(FEAT) value (int32)
+record(ao, "$(P)$(CAM):$(FEAT)") {
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL")
+}
+
+# Read the $(FEAT) value (int32)
+record(ai, "$(P)$(CAM):$(FEAT)_RBV") {
+  field(SCAN, "I/O Intr")
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL")
+  field(PINI, "YES")
+}
+
+## Set the $(FEAT) control mode (manual = user configured /auto = camera sets values)
+record(bo, "$(P)$(CAM):$(FEAT)_CTRL") {
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT) $(NUM))FDC_FEAT_MODE")
+  field(ZNAM, "MANUAL")
+  field(ONAM, "AUTO")
+}
+
+## Read back the $(FEAT) control mode 
+record(bi, "$(P)$(CAM):$(FEAT)_CTRL_RBV") {
+  field(SCAN, "I/O Intr")
+  field(PINI, "YES")
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_MODE")
+  field(ZNAM, "MANUAL")
+  field(ONAM, "AUTO")
+}
+
+## Read whether the camera supports this feature
+record(bi, "$(P)$(CAM):$(FEAT)_AVL") {
+  field(SCAN, "I/O Intr")
+  field(PINI, "YES")
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_AVAILABLE")
+  field(ZNAM, "not available")
+  field(ONAM, "available")
+}
+
+# Read $(FEAT) boundaries
+record(ai, "$(P)$(CAM):$(FEAT)_MIN") {
+  field(SCAN, "I/O Intr")
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_MIN")
+  field(PINI, "YES")
+}
+record(ai, "$(P)$(CAM):$(FEAT)_MAX") {
+  field(SCAN, "I/O Intr")
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_MAX")
+  field(PINI, "YES")
+}
+
+## Read whether the camera supports absolute (floating point) control of this feature 
+record(bi, "$(P)$(CAM):$(FEAT)_ABS_AVL") {
+  field(SCAN, "I/O Intr")
+  field(PINI, "YES")
+  field(DTYP, "asynInt32")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_ABSOLUTE")
+  field(ZNAM, "not available")
+  field(ONAM, "available")
+}
+
+# Set the feature absolute value (floating point)
+record(ao, "$(P)$(CAM):$(FEAT)_ABS") {
+  field(DTYP, "asynFloat64")
+  field(OUT, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS")
+  field(PREC, "3")
+}
+
+# Read the feature absolute value
+record(ai, "$(P)$(CAM):$(FEAT)_ABS_RBV") {
+  field(SCAN, "I/O Intr")
+  field(DTYP, "asynFloat64")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS")
+  field(PINI, "YES")
+  field(PREC, "3")
+}
+
+
+# Read the feature absolute value max boundary
+record(ai, "$(P)$(CAM):$(FEAT)_ABS_MAX") {
+  field(SCAN, "I/O Intr")
+  field(DTYP, "asynFloat64")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS_MAX")
+  field(PINI, "YES")
+  field(PREC, "3")
+}
+
+# Read the feature absolute value min boundary
+record(ai, "$(P)$(CAM):$(FEAT)_ABS_MIN") {
+  field(SCAN, "I/O Intr")
+  field(DTYP, "asynFloat64")
+  field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS_MIN")
+  field(PINI, "YES")
+  field(PREC, "3")
+}

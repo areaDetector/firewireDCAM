@@ -1,0 +1,96 @@
+## \file firewireDCAM.db
+## \brief Template database file to control the features of a firewire camera.
+## See the detailled description for information about macros and how features 
+## can be controlled and read out: 
+##
+## This templates provides control and read back of all camera 'features' provided through
+## the IIDC DCAM protocol. The PV names are put together using the \$(P) and \$(CAM) macros,
+## the feature name [brackets in the list below] and the feature parameters. For instance the PV
+## name for the Gain readback would look like: \$(P)\$(CAM):GAIN_RBV 
+##
+## \section feature_list Feature List
+## See below for the full list of all features but keep in mind
+## that not all firewire cameras need to implement all of these features:
+## \li Brightness [BRIGHTNESS]
+## \li Exposure [EXPOSURE]
+## \li Sharpness [SHARPNESS]
+## \li White Balance [WHITEB]
+## \li Hue [HUE]
+## \li Saturation [SATURATION]
+## \li Gamma [GAMMA]
+## \li Shutter [SHUTTER]
+## \li Gain [GAIN]
+## \li Iris [IRIS]
+## \li Focus [FOCUS]
+## \li Temperature [TEMP]
+## \li Trigger [TRIGGER]
+## \li Trigger Delay [TRIGDLY]
+## \li White Shading [WHITES]
+## \li Framerate [FRAMERATE]*
+## \li Zoom [ZOOM]
+## \li Pan [PAN]
+## \li Tilt [TILT]
+## \li Optical Filter [FILTER]
+## \li Capture Size [CAPTSIZE]
+## \li Capture Quality [QUALITY]
+##
+## \note *: Frame rate is not recommended to set using the feature interface. The \$(P)\$(CAM):FR and \$(P)\$(CAM):FR_RBV
+## records provide more convenient mbbo/mbbi enum interface to available framerates.
+## 
+## \section feature_parameters Feature Parameters
+## For each feature a set of 12 records control and read back all available parameters related to the individual feature.
+## The following lists all the parameters that can be read and set in every feature:
+## \li Read back whether the camera supports the specific feature or not: "not available" or "available" (bi) [_AVL]
+## \li Set integer value (ao) []
+## \li Read current integer value (ai) [_RBV]
+## \li Set control mode: manual = user configured; auto = camera sets values (mbbo) [_CTRL]*
+## \li Read back current control mode (mbbi) [_CTRL_RBV]
+## \li Read back maximum integer boundary (ai) [_MAX]
+## \li Read back minimum integer boundary (ai) [_MIN]
+## \li Read whether the camera supports 'absolute' feature control. I.e. floating point read and/or write control
+##     of the specific feature. "not available" or "available" (bi) [_ABS_AVL]
+## \li Set the features absolute (floating point) value (a0) [_ABS]**
+## \li Read back the current absolute value of the given feature (ai) [_ABS_RBV]
+## \li Read the current absolute maximum value (ai) [_ABS_MAX]
+## \li Read the current absolute minimum value (ai) [_ABS_MIN]
+##
+## \note *: This may not be implemented in all cameras, however all cameras should be able to manage attempts
+## to change this setting without crashing.
+## \note **: Setting this absolute value does not currently work. See the release notes for details.
+##
+##
+
+# add the framerate
+file firewireDCAM_framerate.db
+{ pattern 
+    { _ }
+	{ _ }
+}
+
+# add the necessary features
+file firewireDCAM_feature.db
+{ pattern 
+    { FEAT,       NUM }
+	{ BRIGHTNESS, 0   }
+	{ EXPOSURE,   1   }
+	{ SHARPNESS,  2   }
+	{ WHITEB,     3   }
+	{ HUE,        4   }
+	{ SATURATION, 5   }
+	{ GAMMA,      6   }
+	{ SHUTTER,    7   }
+	{ GAIN,       8   }
+	{ IRIS,       9   }
+	{ FOCUS,      10  }
+	{ TEMP,       11  }
+	{ TRIGGER,    12  }
+	{ TRIGDLY,    13  }
+	{ WHITES,     14  }
+	{ FRAMERATE,  15  }
+	{ ZOOM,       16  }
+	{ PAN,        17  }
+	{ TILT,       18  }
+	{ FILTER,     19  }
+	{ CAPTSIZE,   20  }	
+	{ QUALITY,    21  }
+}
