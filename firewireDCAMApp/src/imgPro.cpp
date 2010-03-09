@@ -6,7 +6,7 @@
 
 /* Image Processing Includes */
 
-#include "ImgProcessing.h"
+#include "imgPro.h"
 
 /* EPICs Includes */
 
@@ -23,29 +23,34 @@
 #include "NDPluginDriver.h"
 #include "ADStdDriverParams.h"
 #include "NDArray.h"
-#include "falseColour.h"
+
+/** Max width of an image, used to define jpeg buffer*/
+#define MAX_WIDTH 2560
+/** Max height of an image, used to define jpeg buffer*/
+#define MAX_HEIGHT 2048
 
 /* Specific asyn commands for this support module. These will be used and
    managed by the parameter library (part of areaDetector) */
 
-typedef enum imgProParam_t
+typedef enum imgProParam_t 
 {
-	imgPro_width				/* Width of the image in pixels */
-	imgPro_height			/* Height of the image in pixels */
-	imgPro_avg_pixel		/* Average number of pixels above the threshold */
-	imgPro_num_of_pixels	/* Number of pixels above a threshold */
-	imgPro_max_pixel_value	/* Highest pixel value within an image */
-	imgPro_threshold		/* User chosen pixel value threshold */
+	imgPro_width,			/* Width of the image in pixels (int32 read) */
+	imgPro_height,			/* Height of the image in pixels (int32 read) */
+	imgPro_avg_pixel,		/* Average number of pixels above the threshold (float32 write) */
+	imgPro_num_of_pixels,		/* Number of pixels above a threshold (int32 write) */
+	imgPro_max_pixel_value,		/* Highest pixel value within an image (int32 write) */
+	imgPro_threshold,		/* User chosen pixel value threshold (int32 read) */
+	imgProLastParam
 } imgProParam_t;
 
 static asynParamString_t imgProParamString[] = 
 {
-	{imgPro_width,      		"IMGPRO_WIDTH"},
-	{imgPro_height,			"IMGPRO_HEIGHT"},
-	{imgPro_avg_pixel,		"IMGPRO_AVG_PIXEL"},
+	{imgPro_width,      	"IMGPRO_WIDTH"},
+	{imgPro_height,		"IMGPRO_HEIGHT"},
+	{imgPro_avg_pixel,	"IMGPRO_AVG_PIXEL"},
 	{imgPro_num_of_pixels,  "IMGPRO_NUM_PIXELS"},
 	{imgPro_max_pixel_value,"IMGPRO_MAX_PIXEL"},
-	{imgPro_threshold, 		"IMGPRO_THRESHOLD"},
+	{imgPro_threshold, 	"IMGPRO_THRESHOLD"},
 };
 
 /* Number of asyn parameters (asyn commands) this driver supports */
@@ -55,27 +60,26 @@ static asynParamString_t imgProParamString[] =
 class imgPro: public NDPluginDriver 
 {
 public:
-    imgPro(const char *portName, int queueSize, int blockingCallbacks, const char *NDArrayPort, int NDArrayAddr);
-    /* globals */
-    globals *pglobal;
+    imgPro(const char *portName, int queueSize, int blockingCallbacks, const char *NDArrayPort, int NDArrayAddr, int maxBuf, int maxMem);
+
     unsigned char *destFrame;    
                  
     /* These methods override those in the base class */
     void processCallbacks(NDArray *pArray);
-    virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo, 
-                             const char **pptypeName, size_t *psize);
+    virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo, const char **pptypeName, size_t *psize);
 
     /* Add in virtual functions to handle read and write operations for each supported data type */
 
 };
 
-
 void imgPro::processCallbacks(NDArray *pArray)
 {
     /* we're going to get these with getIntegerParam */
-    int quality, centrex, centrey, scale, weight, grid, false_col;
+    
+    /*int quality, centrex, centrey, scale, weight, grid;*/
+    
     /* we're going to get these from the dims of the image */
-    int width,height,colour;
+    int width, height, colour;
     unsigned char *srcFrame;
 
     /* Call the base class method */
@@ -84,8 +88,7 @@ void imgPro::processCallbacks(NDArray *pArray)
     pArray->reserve();
 
     /* pArray->pData is the data set */
-	
-			            
+				            
 	    /* get the dimensions */
 	    if (pArray->colorMode == NDColorModeMono )
 	    {
@@ -105,11 +108,8 @@ void imgPro::processCallbacks(NDArray *pArray)
 		setIntegerParam(imgPro_width, width);
 		setIntegerParam(imgPro_height, height);
 
-
-
 	/* Release the frame (unlocking mutex) */
     pArray->release();
-
 
     /* Go through the variables, check for updates. Call IOInterupt to get latest parameters.  */
     /* It is at this point when data appears in the database */
@@ -123,54 +123,68 @@ void imgPro::processCallbacks(NDArray *pArray)
 		NDArrayport = asyn port name of the image source (driver or ROI) */
 
 /* Invoking the base class constructor - called when instantiating plugin */
-imgPro::imgPro(const char *portName, int queueSize, int blockingCallbacks, const char *NDArrayPort, int NDArrayAddr)
-: NDPluginDriver(portName, queueSize, blockingCallbacks, NDArrayPort, NDArrayAddr)
+imgPro::imgPro(const char *portName, int queueSize, int blockingCallbacks, const char *NDArrayPort, int NDArrayAddr, int maxBuf, int maxMem)
+	: NDPluginDriver(portName, 
+					 queueSize, 
+					 blockingCallbacks, 
+					 NDArrayPort, 
+					 NDArrayAddr, 
+					 1, 
+					 imgProLastParam, 
+					 maxBuf, 
+					 maxMem, 
+					 asynFloat64ArrayMask | asynInt32ArrayMask | asynGenericPointerMask | asynOctetMask | asynInt32Mask | asynFloat64Mask,
+					 asynFloat64ArrayMask | asynInt32ArrayMask | asynGenericPointerMask | asynOctetMask | asynInt32Mask | asynFloat64Mask)			 
 {
 	/* Do not call updateParam from here - will crash iocInit as the database won't be ready */
 
-	char outputParam[MAX_CONFIG_STR];
     asynStatus status;
     destFrame = (unsigned char*)malloc(MAX_WIDTH*MAX_HEIGHT*3*sizeof(unsigned char));  
-    pglobal = (globals*)malloc(sizeof(globals));
-     
-   
+    
+    /*********** Calloc not malloc */
+          
     /* Try to connect to the NDArray port */
     status = connectToArrayPort();
-    
- 
-
- 
-
-  
-    
+        
     /* Set the initial values of some parameters */
-    setIntegerParam(0, mjpg_quality, 85);
-    setIntegerParam(0, mjpg_grid, 0);
-    setIntegerParam(0, mjpg_grid_weight, 30);
-    setIntegerParam(0, mjpg_grid_scale, 15);
-    setIntegerParam(0, mjpg_grid_centrex, 512);
-    setIntegerParam(0, mjpg_grid_centrey, 384);
-    setIntegerParam(0, mjpg_false_col, 0);
-    setIntegerParam(0, mjpg_clients, 0);    
-    setIntegerParam(0, mjpg_httpPort, httpPort);
+    
+   setIntegerParam(0, imgPro_threshold, 20);
 }
 
 /** asynDrvUser interface methods */
-asynStatus mjpgServer::drvUserCreate(asynUser *pasynUser, const char *drvInfo, 
-                                       const char **pptypeName, size_t *psize)
+asynStatus imgPro::drvUserCreate(asynUser *pasynUser, const char *drvInfo, const char **pptypeName, size_t *psize)
 {
 	asynStatus status;
-    status = this->drvUserCreateParam(pasynUser, drvInfo, pptypeName, psize,
-            imgProParamString, IMGPRO_N_PARAMS);
-    /* If not, then call the base class method, see if it is known there */
-    if (status) status = NDPluginDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
-	return(status);
+	int param;
+	const char *functionName = "drvUserCreate";
+
+	/* See if this is one of the drivers local parameters */
+	status = findParam(imgProParamString, IMGPRO_N_PARAMS, drvInfo, &param);
+
+	if (status == asynSuccess)
+	{
+		pasynUser->reason = param;
+		if (pptypeName) 
+		{
+			*pptypeName = epicsStrDup(drvInfo); 
+		}
+		if (psize)
+		{
+			*psize = sizeof(param); 
+		}
+		asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s:%s: drvInfo=%s, param=%d\n", "imgPro", functionName, drvInfo, param);
+		return asynSuccess;
+	}
+
+	/* If not a local driver parameter, then see if it is a base class parameter */
+	status = NDPluginDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
+	return status;
 }
 
 /* Configuration routine.  Called directly, or from the iocsh function in imgProRegister - calls the imgPro constructor */
 
-extern "C" int imgProConfigure(const char *portName, int queueSize, int blockingCallbacks, const char *NDArrayPort, int NDArrayAddr)
+extern "C" int imgProConfigure(const char *portName, int queueSize, int blockingCallbacks, const char *NDArrayPort, int NDArrayAddr, int maxBuf, int maxMem)
 {
-    new imgPro(portName, queueSize, blockingCallbacks, NDArrayPort, NDArrayAddr);
+    new imgPro(portName, queueSize, blockingCallbacks, NDArrayPort, NDArrayAddr, maxBuf, maxMem);
     return(asynSuccess);
 }
