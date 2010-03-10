@@ -1,0 +1,29 @@
+#!$(INSTALL)/bin/$(ARCH)/example
+
+cd "$(INSTALL)"
+
+## Register all support components
+dbLoadDatabase("dbd/example.dbd")
+example_registerRecordDeviceDriver(pdbbase)
+
+# Scan the firewire bus for cameras
+FDC_InitBus()
+
+# Create a FirewireDCAM driver instance for one camera
+# Max number of buffers (arg3):
+#     The driver: 2
+#     NDStdArrays: 3
+#     NDROI: 9 (1 per ROI)
+#     = 14 buffers in total.
+# Max memory (arg4) in bytes: 1024x768 x 1 x 14 buffers = 11010048 (Need 3x this if in RGB mode)
+# arg5 = colour mode (B+W)
+
+FDC_Config("LAB2", 0x00B09D01007DE45C, 1, 14, 11010048, 0)
+imgProConfigure("LAB2ImgPro", 1, 0, "LAB2", 0, 14, 11010048)
+
+dbLoadRecords("firewireDCAM.db", "P=LAB2:,CAM=1, PORT=LAB2")
+
+iocInit()
+
+asynSetTraceMask("LAB2",0,0x11)
+asynSetTraceMask("LAB2",1,0x11)
