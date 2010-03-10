@@ -1,23 +1,23 @@
 /*
- * Author: Ulrik Pedersen, 
+ * Author: Ulrik Pedersen,
  *         Diamond Light Source, Copyright 2008
  *
  * License: This file is part of 'firewireDCAM'
- * 
+ *
  * 'firewireDCAM' is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * 'firewireDCAM' is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with 'firewireDCAM'.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 /** \file firewireDCAM.cpp
  * \brief This is areaDetector plug-in support for firewire cameras that comply
  *  with the IIDC DCAM protocol. This implements the \ref FirewireDCAM class which
@@ -46,8 +46,6 @@
 
 /* Dependency support modules includes:
  * asyn, areaDetector, dc1394 and raw1394 */
-#include <ADStdDriverParams.h>
-#include <NDArray.h>
 #include <ADDriver.h>
 
 /* libdc1394 includes */
@@ -176,7 +174,7 @@ extern "C" int FDC_Config(const char *portName, const char* camid, int speed, in
 /** Specific asyn commands for this support module. These will be used and
  * managed by the parameter library (part of areaDetector). */
 typedef enum FDCParam_t {
-	FDC_feat_val = ADFirstDriverParam, /** Feature value (int32 read/write) addr: 0-17 */
+	FDC_feat_val = ADLastStdParam, /** Feature value (int32 read/write) addr: 0-17 */
 	FDC_feat_val_max,                  /** Feature maximum boundry value (int32 read) addr: 0-17 */
 	FDC_feat_val_min,                  /** Feature minimum boundry value (int32 read)  addr: 0-17*/
 	FDC_feat_val_abs,                  /** Feature absolute value (float64 read/write) addr: 0-17 */
@@ -231,7 +229,10 @@ static void imageGrabTaskC(void *drvPvt)
  */
 FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 							int maxBuffers, size_t maxMemory, int colour )
-	: ADDriver(portName, DC1394_FEATURE_NUM, ADLastDriverParam, maxBuffers, maxMemory, 0, 0),
+	: ADDriver(portName, DC1394_FEATURE_NUM, ADLastDriverParam, maxBuffers, maxMemory,
+			0, 0, // interfacemask and interruptmask
+			ASYN_MULTIDEVICE | ASYN_CANBLOCK, 1, // asynflags and autoconnect,
+			0, 0),// thread priority and stack size
 		pRaw(NULL)
 {
 	const char *functionName = "FirewireDCAM";
@@ -318,12 +319,14 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 
 	/* writing the selected video mode to the camera */
 	printf("Setting video mode: %d...               ", this->video_mode);
+	fflush(stdout);
 	err=dc1394_video_set_mode(this->camera, this->video_mode );
 	ERR( err );
 	printf("OK\n");
 
 	/* Get the image size from our current video mode */
 	printf("Getting image dimensions from mode...   ");
+	fflush(stdout);
 	err = dc1394_get_image_size_from_video_mode(this->camera, this->video_mode, &sizeX, &sizeY);
 	dimensions[0] = (int)sizeX;
 	dimensions[1] = (int)sizeY;
@@ -349,21 +352,25 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 	 * if we try to set 800Mb/s (B mode) on a camera that doesn't support it. Or
 	 * what happens if we set B mode on a bus that has a mix of A and B mode cameras? */
 	printf("Setting 1394%c mode...                   ", chMode);
+	fflush(stdout);
 	err=dc1394_video_set_operation_mode(this->camera, opMode);
 	ERR( err );
 	printf("OK\n");
 
 	printf("Setting ISO speed to %dMb/s...         ", busSpeed);
+	fflush(stdout);
 	err=dc1394_video_set_iso_speed(this->camera, opSpeed);
 	ERR( err );
 	printf("OK\n");
 
 	printf("Setting framerate (7.5): %d...          ", DC1394_FRAMERATE_7_5);
+	fflush(stdout);
 	err=dc1394_video_set_framerate(this->camera, DC1394_FRAMERATE_7_5);
 	ERR( err );
 	printf("OK\n");
 
 	printf("Preparing capture...                    ");
+	fflush(stdout);
 	err=dc1394_capture_setup(this->camera,FDC_DC1394_NUM_BUFFERS, DC1394_CAPTURE_FLAGS_DEFAULT);
 	ERR( err );
 	printf("OK\n");
@@ -378,20 +385,13 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 
 	/* Set the parameters from the camera in our areaDetector param lib */
 	printf("Setting the areaDetector parameters...  ");
+	fflush(stdout);
     status =  setStringParam (ADManufacturer, this->camera->vendor);
     status |= setStringParam (ADModel, this->camera->model);
     status |= setIntegerParam(ADMaxSizeX, dimensions[0]);
     status |= setIntegerParam(ADMaxSizeY, dimensions[1]);
     status |= setIntegerParam(ADSizeX, dimensions[0]);
     status |= setIntegerParam(ADSizeY, dimensions[1]);
-    status |= setIntegerParam(ADImageSizeX, dimensions[0]);
-    status |= setIntegerParam(ADImageSizeY, dimensions[1]);
-
-    /* We only currently support 8 bit mono and 3x 8 bit RGB...
-     * TODO: figure out how to enable support for:
-     *       a) 12 bit mono(?)   */
-    status |= setIntegerParam(ADImageSize, dimensions[0]*dimensions[1]*sizeof(char));
-    status |= setIntegerParam(ADDataType, NDUInt8);
 
     status |= setIntegerParam(ADImageMode, ADImageContinuous);
     status |= setIntegerParam(ADNumImages, 100);
@@ -404,6 +404,7 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 
 	/* Start up acquisition thread */
     printf("Starting up image grabbing task...     ");
+	fflush(stdout);
     status = (epicsThreadCreate("imageGrabTask",
     		epicsThreadPriorityMedium,
     		epicsThreadGetStackSize(epicsThreadStackMedium),
@@ -425,7 +426,6 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 void FirewireDCAM::imageGrabTask()
 {
 	int status = asynSuccess;
-	int imageCounter;
 	int numImages, numImagesCounter;
 	int imageMode;
 	int arrayCallbacks;
@@ -441,7 +441,7 @@ void FirewireDCAM::imageGrabTask()
 
 	epicsEventTryWait(this->stopEventId); /* clear the stop event if it wasn't already */
 
-	epicsMutexLock(this->mutexId);
+	this->lock();
 
 	while (1) /* ... round and round and round we go ... */
 	{
@@ -463,7 +463,7 @@ void FirewireDCAM::imageGrabTask()
 			} else externalStopCmd = 1;
 
 			/* Release the lock while we wait for an event that says acquire has started, then lock again */
-			epicsMutexUnlock(this->mutexId);
+			this->unlock();
 
 
 			/* Wait for a signal that tells this thread that the transmission
@@ -473,7 +473,7 @@ void FirewireDCAM::imageGrabTask()
 			status = epicsEventWait(this->startEventId);
 			asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
 					"%s::%s [%s]: started!\n", driverName, functionName, this->portName);
-			epicsMutexLock(this->mutexId);
+			this->lock();
 			setIntegerParam(ADNumImagesCounter, 0);
 			setIntegerParam(ADAcquire, 1);
 		}
@@ -486,29 +486,29 @@ void FirewireDCAM::imageGrabTask()
 		callParamCallbacks();
 
 		/* Allocate an NDArray for dumping the dc1394 bus data into */
-		getIntegerParam(ADDataType, (int *)&dataType);	
+		getIntegerParam(NDDataType, (int *)&dataType);
 		if (this->colour == 1)
-		{	
+		{
 			maxDims[0] = 3;
 			getIntegerParam(ADMaxSizeX, &maxDims[1]);
 			getIntegerParam(ADMaxSizeY, &maxDims[2]);
 		}
 		else
-		{	
+		{
 			getIntegerParam(ADMaxSizeX, &maxDims[0]);
 			getIntegerParam(ADMaxSizeY, &maxDims[1]);
 		}
-		
-	    this->pRaw = this->pNDArrayPool->alloc(2+colour, maxDims, dataType, 0, NULL);
+
+	    this->pRaw = this->pNDArrayPool->alloc(2+this->colour, maxDims, dataType, 0, NULL);
 		if (this->colour == 1)
-		{	
-			this->pRaw->colorMode = NDColorModeRGB1;
+		{
+			setIntegerParam(NDColorMode, NDColorModeRGB1);
 		}
 		else
-		{	
-			this->pRaw->colorMode = NDColorModeMono;
+		{
+			setIntegerParam(NDColorMode, NDColorModeMono);
 		}
-	    
+
 	    if (!this->pRaw)
 	    {
 	    	/* If we didn't get a valid buffer from the NDArrayPool we must abort
@@ -537,17 +537,14 @@ void FirewireDCAM::imageGrabTask()
 		}
 
 		/* Set a bit of image/frame statistics... */
-		getIntegerParam(ADImageCounter, &imageCounter);
 		getIntegerParam(ADNumImages, &numImages);
 		getIntegerParam(ADNumImagesCounter, &numImagesCounter);
 		getIntegerParam(ADImageMode, &imageMode);
-		getIntegerParam(ADArrayCallbacks, &arrayCallbacks);
-		imageCounter++;
+		getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
 		numImagesCounter++;
-		setIntegerParam(ADImageCounter, imageCounter);
 		setIntegerParam(ADNumImagesCounter, numImagesCounter);
 		/* Put the frame number into the buffer */
-		this->pRaw->uniqueId = imageCounter;
+		this->pRaw->uniqueId = numImagesCounter;
 		/* Set a timestamp in the buffer */
 		/* This is disabled now as we set the timestamp from the dc1394_frame
 		 * in the buffer instead...		 */
@@ -566,9 +563,9 @@ void FirewireDCAM::imageGrabTask()
 			/* Call the NDArray callback */
 			/* Must release the lock here, or we can get into a deadlock, because we can
 			 * block on the plugin lock, and the plugin can be calling us */
-			epicsMutexUnlock(this->mutexId);
+			this->unlock();
 			doCallbacksGenericPointer(this->pRaw, NDArrayData, 0);
-			epicsMutexLock(this->mutexId);
+			this->lock();
 		}
 		/* Release the NDArray buffer now that we are done with it.
 		 * After the callback just above we don't need it anymore */
@@ -620,7 +617,7 @@ int FirewireDCAM::grabImage()
 	status |= getIntegerParam(ADReverseY,     &reverseY);
 	status |= getIntegerParam(ADMaxSizeX,     &maxSizeX);
 	status |= getIntegerParam(ADMaxSizeY,     &maxSizeY);
-	status |= getIntegerParam(ADDataType,     (int *)&dataType);
+	status |= getIntegerParam(NDDataType,     (int *)&dataType);
 	if (status) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
 			"%s:%s: error getting parameters\n",
 			driverName, functionName);
@@ -636,10 +633,10 @@ int FirewireDCAM::grabImage()
 	if (minY+sizeY > maxSizeY) { sizeY = maxSizeY-minY; status |= setIntegerParam(ADSizeY, sizeY); }
 
 	/* unlock the mutex while we wait for a new image to be ready */
-	epicsMutexUnlock(this->mutexId);
+	this->unlock();
 	err = dc1394_capture_dequeue(this->camera, DC1394_CAPTURE_POLICY_WAIT, &dc1394_frame);
 	status = PERR( this->pasynUserSelf, err );
-	epicsMutexLock(this->mutexId);
+	this->lock();
 	if (status) return status;   /* if we didn't get an image properly... */
 
 	/* tell our driver where to find the dc1394 image buffer with this latest image */
@@ -652,8 +649,9 @@ int FirewireDCAM::grabImage()
 	/* If size parameters are different from what we get from the frame buffer we correct them */
 	if (sizeX != (int)dc1394_frame->size[0]) { sizeX = dc1394_frame->size[0]; status |= setIntegerParam(ADSizeX, sizeX); }
 	if (sizeY != (int)dc1394_frame->size[1]) { sizeY = dc1394_frame->size[1]; status |= setIntegerParam(ADSizeY, sizeY); }
-	status |= setIntegerParam(ADImageSizeX, (int)dc1394_frame->size[0]);
-	status |= setIntegerParam(ADImageSizeY, (int)dc1394_frame->size[1]);
+	status |= setIntegerParam(NDArraySizeX, (int)dc1394_frame->size[0]);
+	status |= setIntegerParam(NDArraySizeY, (int)dc1394_frame->size[1]);
+	status |= setIntegerParam(NDArraySize, (int)dc1394_frame->image_bytes);
 
 	/* copy the data from the dc1394 frame into our raw driver buffer */
 	memcpy(this->pRaw->pData, dc1394_frame->image, dc1394_frame->image_bytes);
@@ -707,7 +705,7 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 	case ADAcquirePeriod:
 	case ADNumImagesCounter:
 	case ADTriggerMode:
-	case ADArrayCallbacks:
+	case NDArrayCallbacks:
 
 	// Reversing X and Y has no effect anyway.
 	// If the user want to reverse the image he can use the ROI plug-in
@@ -750,6 +748,7 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 	}
 
 	//if (status != asynError) status = setIntegerParam(function, value);
+	asynPrint(pasynUser, ASYN_TRACE_FLOW, "writeInt32: addr=%d function=%d rbvalue=%d\n", addr, function, rbValue);
 	if (status != asynError) status = setIntegerParam(addr, function, rbValue);
 	//if (status != asynError) callParamCallbacks();
 	/* Call the callback for the specific address .. and address ... weird? */
@@ -1259,9 +1258,9 @@ asynStatus FirewireDCAM::stopCapture(asynUser *pasynUser)
 	asynPrint( pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] waiting for stopped event...\n",
 					driverName, functionName, this->portName);
 	/* unlock the mutex while we're waiting for the capture thread to stop acquiring */
-	epicsMutexUnlock(this->mutexId);
+	this->unlock();
 	eventStatus = epicsEventWaitWithTimeout(this->stopEventId, 3.0);
-	epicsMutexLock(this->mutexId);
+	this->lock();
 	if (eventStatus != epicsEventWaitOK)
 	{
 		asynPrint( pasynUser, ASYN_TRACE_FLOW, "%s::%s [%s] ERROR: Timeout when trying to stop image grabbing thread.\n",
@@ -1314,29 +1313,23 @@ asynStatus FirewireDCAM::err( asynUser* asynUser, dc1394error_t dc1394_err, int 
  * \param psize
  * \return asynStatus Either asynError or asynSuccess
  */
-asynStatus FirewireDCAM::drvUserCreate( asynUser *pasynUser, const char *drvInfo, const char **pptypeName, size_t *psize)
+asynStatus FirewireDCAM::drvUserCreate( asynUser *pasynUser,
+										const char *drvInfo,
+										const char **pptypeName,
+										size_t *psize)
 {
 	asynStatus status;
 	int param;
 	const char *functionName = "drvUserCreate";
 
-	/* See if this is one of the drivers local parameters */
-	status = findParam(FDCParamString, FDC_N_PARAMS, drvInfo, &param);
-
-	if (status == asynSuccess)
-	{
-		pasynUser->reason = param;
-		if (pptypeName) { *pptypeName = epicsStrDup(drvInfo); }
-		if (psize) { *psize = sizeof(param); }
-		asynPrint(	pasynUser, ASYN_TRACE_FLOW, "%s:%s: drvInfo=%s, param=%d\n",
-					driverName, functionName, drvInfo, param);
-		return asynSuccess;
-	}
+	status = this->drvUserCreateParam(	pasynUser, drvInfo, pptypeName,
+										psize, FDCParamString, FDC_N_PARAMS);
 
 	/* If not a local driver parameter, then see if it is a base class parameter */
-	status = ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
+	if (status) status = ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
 	return status;
 }
+
 
 /** Print out a report. Not yet implemented!
  * \param fp Stream or file pointer to write the report to.

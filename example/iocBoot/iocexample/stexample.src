@@ -18,10 +18,12 @@ FDC_InitBus()
 # Max memory (arg4) in bytes: 1024x768x1 x 14 buffers = 11010048, need 3x this if in RGB mode
 # arg5 = colour mode (B+W)
 #FDC_Config("CAM8", 0x00B09D01007DE464, 1, 14, 11010048, 0)
-FDC_Config("CAM8", 0x00b09d01007139d0, 800, 14, 11010048, 0)
+#FDC_Config("CAM8", 0x00b09d01007139d0, 800, 14, 11010048, 0)
+#FDC_Config( "CAM8", 0x00b09d01007de45a, 800, 14, 11010048, 0)
+FDC_Config( "DCAM1", 0x00b09d01007de45c, 800, 14, 11010048, 0)  # really LAB2
 
 # Load the AreaDetector base records
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/ADBase.template",     "P=CAM8:,R=cam1:,PORT=CAM8,ADDR=0,TIMEOUT=1")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/ADBase.template",     "P=DCAM:,R=CAM1:,PORT=DCAM1,ADDR=0,TIMEOUT=1")
 
 #### Create a standard arrays plugin, set it to get data from the FirewireDCAM driver.
 #     Parameters:
@@ -31,9 +33,9 @@ dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/ADBase.template",     "P=CAM8:,R=cam1:,
 #  Asyn port name of the driver that produces the data.
 #  Maximum number of bytes of memory to be allocated from the NDArrayPool.
 #   This plug-in allocates 2 NDArrays. So max memory: 1024x768x1 x 2 = 1572864
-drvNDStdArraysConfigure("CAM8Image", 3, 0, "CAM8", 0, 1572864)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=CAM8:,R=image1:,PORT=CAM8Image,ADDR=0,TIMEOUT=1,NDARRAY_PORT=CAM8,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=CAM8:,R=image1:,PORT=CAM8Image,ADDR=0,TIMEOUT=1,SIZE=8,FTVL=UCHAR,NELEMENTS=786432")
+NDStdArraysConfigure("DCAMImage", 3, 0, "DCAM1", 0, 1572864)
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=DCAM:,R=image1:,PORT=DCAMImage,ADDR=0,TIMEOUT=1,NDARRAY_PORT=DCAM1,NDARRAY_ADDR=0")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=DCAM:,R=image1:,PORT=DCAMImage,ADDR=0,TIMEOUT=1,SIZE=8,TYPE=Int8,FTVL=UCHAR,NELEMENTS=786432")
 
 ####  Create a ROI plugin
 #    Parameters:
@@ -49,23 +51,22 @@ dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=CAM8:,R=image
 # maxMemory         Maximum number of bytes of memory to be allocated from the NDArrayPool. 
 #                   This should be at least maxROIs times the size of the largest NDArray to be used.
 #                   1024x768x1 x 9 ROI = 7077888
-drvNDROIConfigure("CAM8ROI", 16, 0, "CAM8", 0, 9, 7077888)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=CAM8:,R=ROI1:,  PORT=CAM8ROI,ADDR=0,TIMEOUT=1,NDARRAY_PORT=CAM8,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROI.template",       "P=CAM8:,R=ROI1:,  PORT=CAM8ROI,ADDR=0,TIMEOUT=1")
+NDROIConfigure("DCAMROI", 16, 0, "DCAM1", 0, 9, 16, 7077888)
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=DCAM:,R=ROI1:,  PORT=DCAMROI,ADDR=0,TIMEOUT=1,NDARRAY_PORT=DCAM1,NDARRAY_ADDR=0")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROI.template",       "P=DCAM:,R=ROI1:,  PORT=DCAMROI,ADDR=0,TIMEOUT=1")
 
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:0:,PORT=CAM8ROI,ADDR=0,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:1:,PORT=CAM8ROI,ADDR=1,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:2:,PORT=CAM8ROI,ADDR=2,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:3:,PORT=CAM8ROI,ADDR=3,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:4:,PORT=CAM8ROI,ADDR=4,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:5:,PORT=CAM8ROI,ADDR=5,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:6:,PORT=CAM8ROI,ADDR=6,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=CAM8:,R=ROI1:7:,PORT=CAM8ROI,ADDR=7,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:0:,PORT=DCAMROI,ADDR=0,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:1:,PORT=DCAMROI,ADDR=1,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:2:,PORT=DCAMROI,ADDR=2,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:3:,PORT=DCAMROI,ADDR=3,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:4:,PORT=DCAMROI,ADDR=4,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:5:,PORT=DCAMROI,ADDR=5,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:6:,PORT=DCAMROI,ADDR=6,TIMEOUT=1,HIST_SIZE=256")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=DCAM:,R=ROI1:7:,PORT=DCAMROI,ADDR=7,TIMEOUT=1,HIST_SIZE=256")
 
-dbLoadRecords("/home/up45/support/firewireDCAM/db/firewireDCAM.db", "P=CAM8:,CAM=1, PORT=CAM8")
+dbLoadRecords("$(INSTALL)/../db/firewireDCAM.db", "P=DCAM:,CAM=CAM1, PORT=DCAM1")
 
-
+asynSetTraceMask("DCAM1",0,0x1)
 iocInit()
 
-asynSetTraceMask("CAM8",0,0x11)
-asynSetTraceMask("CAM8",1,0x11)
+asynSetTraceMask("DCAM1",1,0x11)

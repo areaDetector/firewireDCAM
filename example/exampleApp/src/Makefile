@@ -18,8 +18,9 @@ example_DBD += asyn.dbd
 example_DBD += firewireDCAM.dbd
 example_DBD += ADSupport.dbd
 example_DBD += pluginSupport.dbd
-example_DBD += calc.dbd
+example_DBD += calcSupport.dbd
 example_DBD += sscan.dbd
+example_DBD += busySupport.dbd
 
 
 # example_registerRecordDeviceDriver.cpp will be created
@@ -49,9 +50,16 @@ example_OBJS_vxWorks += $(EPICS_BASE_BIN)/vxComLibrary
 example_LIBS += asyn
 example_LIBS += firewireDCAM
 example_LIBS += NDPlugin ADBase
-example_LIBS += calc sscan
+example_LIBS += calc sscan busy
 # Comment next line out if libdc1394 is *not* build as an EPICS module
-example_LIBS += dc1394  
+example_LIBS += dc1394
+
+# Libraries supplied by areaDetector
+# We are not using them but they have to be declared to find the symbols
+# in libNDPlugin.
+example_LIBS_Linux += NeXus mfhdf df hdf5 mxml
+# Libraries from the host system which areaDetector (libNDPlugin) require
+example_SYS_LIBS_Linux += tiff jpeg z
 
 # We need to link this IOC Application against the EPICS Base libraries
 example_LIBS += $(EPICS_BASE_IOC_LIBS)

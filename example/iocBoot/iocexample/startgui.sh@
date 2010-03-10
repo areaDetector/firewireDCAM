@@ -1,0 +1,11 @@
+#!/bin/bash
+
+cd @TOP@/data
+
+export EPICS_DISPLAY_PATH=.:@TOP@/data:@FIREWIREDCAM@/data:@AD@/ADApp/op/adl:@ASYN@/medm
+medm -x firewireDCAMTop.adl &
+
+export EDMDATAFILES=.:@TOP@/data:@FIREWIREDCAM@/data
+edm -x -eolc -m "P=DCAM:,CAM=CAM1" firewireDCAM.edl
+
+
