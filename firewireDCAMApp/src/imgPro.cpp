@@ -34,7 +34,7 @@
 
 typedef enum imgProParam_t 
 {
-	imgPro_width,			/* Width of the image in pixels (int32 read) */
+	imgPro_width= NDPluginDriverLastParam,			/* Width of the image in pixels (int32 read) */
 	imgPro_height,			/* Height of the image in pixels (int32 read) */
 	imgPro_avg_pixel,		/* Average number of pixels above the threshold (float32 write) */
 	imgPro_num_of_pixels,		/* Number of pixels above a threshold (int32 write) */
@@ -142,7 +142,7 @@ imgPro::imgPro(const char *portName, int queueSize, int blockingCallbacks, const
     destFrame = (unsigned char*)malloc(MAX_WIDTH*MAX_HEIGHT*3*sizeof(unsigned char));  
     
     /*********** Calloc not malloc */
-          
+
     /* Try to connect to the NDArray port */
     status = connectToArrayPort();
         

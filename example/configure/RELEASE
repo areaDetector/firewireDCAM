@@ -15,7 +15,7 @@ WORK=/dls_sw/work/R3.14.10/support
 ASYN=$(SUPPORT)/asyn/4-12
 AREA_DETECTOR=$(SUPPORT)/areaDetector/1-5
 BUSY=$(SUPPORT)/busy/1-2dls1
-FIREWIREDCAM=/scratch/firewireDCAM
+FIREWIREDCAM=$(WORK)/firewireDCAM
 
 # Linux Firewire DCAM (IIDC) libraries dc1394 and raw1394 has
 # been build into a similar directory structure as most common

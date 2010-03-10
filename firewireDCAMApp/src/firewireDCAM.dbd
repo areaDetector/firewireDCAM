@@ -1,1 +1,2 @@
 registrar("firewireDCAMRegister")
+registrar("imgProRegister")
