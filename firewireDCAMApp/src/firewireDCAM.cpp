@@ -111,23 +111,68 @@ public:
 };
 /* end of FirewireDCAM class description */
 
+void reset_bus(dc1394camera_t *camera)
+{
+    dc1394error_t err;
+    printf("Resetting bus...\n");
+    err = dc1394_reset_bus (camera);
+    if (err != 0) fprintf(stderr, "### ERROR ###  Error resetting bus. dc1394:\n\t\"%s\"\n", dc1394_error_get_string(err));
+    else printf("Done!\n");
+}    
+
 /** \brief Initialise the firewire bus.
  *
  * This function need to be called only once to initialise the firewire bus before FDC_Config() can be called.
  * The bus will be scanned for cameras and the number of cameras and their hexadecimal ID will be printed to stdout.
  */
+
 extern "C" int FDC_InitBus(void)
 {
-	dc1394error_t err;
-	unsigned int i;
+    dc1394_t * d;
+    dc1394camera_list_t * list;
+    dc1394camera_t *camera = NULL;
+    dc1394error_t err;
+    uint32_t node;
+    uint32_t generation;    
+    uint32_t lastgeneration;
+    unsigned int i;
+    int hasLastgeneration = 0;
 	const char* featstring;
+	/*unsigned int ret = 0;*/
+    /*int i;*/
 
 	featstring = (char*)calloc(255, sizeof(char));
+
+    d = dc1394_new ();
+    err=dc1394_camera_enumerate (d, &list);
+	ERR( err );
+
+	for (i = 0; i < list->num; i++)
+	{
+    	camera = dc1394_camera_new (d, list->ids[i].guid);        
+        dc1394_camera_get_node(camera, &node, &generation);
+        if ((hasLastgeneration) && (lastgeneration != generation)) 
+		{
+            camera = dc1394_camera_new (d, list->ids[i-1].guid);        
+            reset_bus(camera);
+        }        
+        printf("Found camera: GUID:\t0x%16.16llX node:%x generation:%x\n", list->ids[i].guid, node, generation);        
+        lastgeneration = generation;
+        hasLastgeneration = 1;
+	}
+    if (hasLastgeneration) {
+        camera = dc1394_camera_new (d, list->ids[i-1].guid);        
+        reset_bus(camera);
+    }        	
+
+    dc1394_camera_free_list (list);	
+    dc1394_camera_free (camera);
+    dc1394_free (d);
 
 	/* initialise the bus */
 	dc1394fwbus = dc1394_new ();
 	/* scan the bus for all cameras */
-	err=dc1394_camera_enumerate (dc1394fwbus, &dc1394camList);
+	err = dc1394_camera_enumerate (dc1394fwbus, &dc1394camList);
 	ERR( err );
 
 	if (dc1394camList->num <= 0)
