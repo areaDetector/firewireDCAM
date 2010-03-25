@@ -1,5 +1,5 @@
 ## Change the framerate when the camera is not in the ROI/format7 mode
-record(mbbo, "$(P)$(CAM):FR") {
+record(mbbo, "$(P)$(R)FR") {
   field(SCAN, "Passive")
   field(PINI, "NO")
   field(DTYP, "asynInt32")
@@ -21,7 +21,7 @@ record(mbbo, "$(P)$(CAM):FR") {
 }
 
 ## Read back the framerate setting when not in ROI/format7 mode.
-record(mbbi, "$(P)$(CAM):FR_RBV") {
+record(mbbi, "$(P)$(R)FR_RBV") {
   field(SCAN, "I/O Intr")
   #field(PINI, "YES")
   field(DTYP, "asynInt32")

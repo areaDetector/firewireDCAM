@@ -60,6 +60,11 @@
 ##
 ##
 
+# Macros:
+#% macro, P, Device Prefix
+#% macro, R, Device Suffix
+#% macro, PORT, Asyn Port name
+
 # add the framerate
 file firewireDCAM_framerate.db
 { pattern 
