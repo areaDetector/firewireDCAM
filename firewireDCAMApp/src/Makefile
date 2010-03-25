@@ -2,6 +2,13 @@ TOP=../..
 
 include $(TOP)/configure/CONFIG
 
+#--------------------------------------------------------
+# Build a little tool to do various firewire bus checks
+#--------------------------------------------------------
+PROD_IOC += firewiretool
+firewiretool_SRCS_DEFAULT += firewiretool.cpp
+firewiretool_LIBS += dc1394
+
 # -------------------------------
 # Build a Diamond Support Module
 # -------------------------------
@@ -20,8 +27,8 @@ USR_CFLAGS_Linux += -std=gnu89
 # The following are compiled and added to the support library
 firewireDCAM_SRCS += drvFirewireDCAM.c
 firewireDCAM_SRCS += firewireDCAM.cpp
-firewireDCAM_SRCS += drvImgPro.c
-firewireDCAM_SRCS += imgPro.cpp
+#firewireDCAM_SRCS += drvImgPro.c
+#firewireDCAM_SRCS += imgPro.cpp
 
 # We don't really need to link against the EPICS Base libraries
 # when we are just compiling a support module. We just have to 
