@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <components arch="linux-x86">
-	<firewireDCAM.firewireDCAM_feature FEAT="FEAT" P="P" CAM="CAM" PORT="PORT" NUM="NUM"/>
-	<firewireDCAM.firewireDCAM P="P" CAM="CAM" PORT="PORT"/>
-	<firewireDCAM.firewireDCAM_framerate P="P" CAM="CAM" PORT="PORT"/>
+	<firewireDCAM.firewireDCAM ADDR="0" ID="0xb09d01007de45a" MEMORY="-1" P="TESTFWDCAM" PORT="CAM" R=":CAM:" TIMEOUT="1"/>
+	<areaDetector.NDStdArrays ADDR="0" FTVL="UCHAR" MEMORY="-1" NDARRAY_ADDR="0" NDARRAY_PORT="CAM" NELEMENTS="786432" P="TESTFWDCAM" PORT="ARR" R=":ARR:" TIMEOUT="1" TYPE="Int8"/>
+	<areaDetector.NDROI ADDR="0" MEMORY="-1" NDARRAY_ADDR="0" NDARRAY_PORT="CAM" P="TESTFWDCAM" PORT="ROI" R=":ROI:" TIMEOUT="1"/>
 </components>
