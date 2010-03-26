@@ -1,2 +1,2 @@
 registrar("firewireDCAMRegister")
-registrar("imgProRegister")
+#registrar("imgProRegister")

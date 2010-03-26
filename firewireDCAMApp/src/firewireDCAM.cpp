@@ -111,63 +111,118 @@ public:
 };
 /* end of FirewireDCAM class description */
 
-void reset_bus(dc1394camera_t *camera)
+typedef struct camNode_t {
+	ELLNODE *node;
+	dc1394camera_t *cam;
+	uint32_t generation;
+}camNode_t;
+
+void reset_bus()
 {
-    dc1394error_t err;
-    printf("Resetting bus...\n");
-    err = dc1394_reset_bus (camera);
-    if (err != 0) fprintf(stderr, "### ERROR ###  Error resetting bus. dc1394:\n\t\"%s\"\n", dc1394_error_get_string(err));
-    else printf("Done!\n");
+	dc1394_t * d;
+	dc1394camera_list_t * list;
+	dc1394camera_t *cam = NULL;
+    uint32_t generation, latch=0;
+    uint32_t node;
+    ELLLIST camList;
+    camNode_t *camListItem, *tmp;
+    unsigned int i, newBus;
+
+    printf("Enumerating cameras on the bus\n");
+
+    d = dc1394_new ();
+	ERR( dc1394_camera_enumerate (d, &list) );
+	printf("Found %d cameras\n", list->num);
+
+	// To reset a multi-bus system it is necessary to find a camera on each
+	// individual bus and call the reset function with that camera.
+	ellInit(&camList);
+
+	// Get the 'generation' parameter for each camera. This parameter indicate
+	// which bus the camera is located on.
+	// For each specific 'generation' we add the camera handle to a list which
+	// we can later use to reset each bus.
+	for (i=0;i<list->num; i++)
+	{
+		printf("cam ID: %16.16llX\n", list->ids[i].guid);
+		cam = dc1394_camera_new (d, list->ids[i].guid);
+		ERR( dc1394_camera_get_node(cam, &node, &generation) );
+
+		// Run through the collected list of cameras and check if anyone
+		// has the same 'generation' parameter... (i.e. is on the same bus)
+		tmp=(camNode_t*)ellFirst(&camList);
+		printf("tmp: %p\n", tmp);
+		newBus = 1;
+		while(tmp!=NULL)
+		{
+			if (generation == tmp->generation)
+			{
+				newBus = 1;
+				break;
+			}
+			tmp=(camNode_t*)ellNext((ELLNODE*)tmp);
+		}
+
+		if (newBus==1 || i==0)
+		{
+			printf("Adding cam: %16.16llX\n", list->ids[i].guid);
+			cam = dc1394_camera_new(d, list->ids[i].guid);
+			printf("Allocated camera: %p\n", cam);
+			camListItem = (camNode_t*)calloc(1, sizeof(camNode_t));
+			camListItem->cam = cam;
+			camListItem->generation = generation;
+			ellAdd(&camList, (ELLNODE*)camListItem);
+			latch = generation;
+		} else
+		{
+			printf("freeing cam: %16.16llX\n", list->ids[i].guid);
+			// if we dont need the camera handle to reset the bus
+			// we might as well free it up
+			dc1394_camera_free(cam);
+		}
+	}
+
+	// Go through the list of cameras that have been identified to be
+	// on separate physical busses. Call reset for each of them and free
+	// up the camera handle
+	printf("Getting the first camera to reset\n");
+	camListItem = (camNode_t*)ellFirst(&camList);
+	while(camListItem != NULL)
+	{
+		printf("Resetting bus using camera (%p)", camListItem);
+		fflush(stdout);
+		printf("%p\n", camListItem->cam);
+		printf("0x%16.16llX...   ", camListItem->cam->guid);
+		fflush(stdout);
+		ERR( dc1394_reset_bus(camListItem->cam) );
+		printf("Done\n");
+		dc1394_camera_free(camListItem->cam);
+		camListItem = (camNode_t*)ellNext((ELLNODE*)camListItem);
+	}
+
+	// Clear up after ourselves.
+	printf("Cleaning up stuff...\n");
+	ellFree(&camList);
+    dc1394_camera_free_list (list);
+    dc1394_free (d);
+    return;
 }    
 
 /** \brief Initialise the firewire bus.
  *
  * This function need to be called only once to initialise the firewire bus before FDC_Config() can be called.
- * The bus will be scanned for cameras and the number of cameras and their hexadecimal ID will be printed to stdout.
+ * The bus will be first be reset, then scanned for cameras and the number of cameras and their hexadecimal
+ * ID will be printed to stdout.
  */
-
 extern "C" int FDC_InitBus(void)
 {
-    dc1394_t * d;
-    dc1394camera_list_t * list;
-    dc1394camera_t *camera = NULL;
     dc1394error_t err;
-    uint32_t node;
-    uint32_t generation;    
-    uint32_t lastgeneration;
     unsigned int i;
-    int hasLastgeneration = 0;
-	const char* featstring;
-	/*unsigned int ret = 0;*/
-    /*int i;*/
 
-	featstring = (char*)calloc(255, sizeof(char));
+    printf("FDC_InitBus:\n");
 
-    d = dc1394_new ();
-    err=dc1394_camera_enumerate (d, &list);
-	ERR( err );
-
-	for (i = 0; i < list->num; i++)
-	{
-    	camera = dc1394_camera_new (d, list->ids[i].guid);        
-        dc1394_camera_get_node(camera, &node, &generation);
-        if ((hasLastgeneration) && (lastgeneration != generation)) 
-		{
-            camera = dc1394_camera_new (d, list->ids[i-1].guid);        
-            reset_bus(camera);
-        }        
-        printf("Found camera: GUID:\t0x%16.16llX node:%x generation:%x\n", list->ids[i].guid, node, generation);        
-        lastgeneration = generation;
-        hasLastgeneration = 1;
-	}
-    if (hasLastgeneration) {
-        camera = dc1394_camera_new (d, list->ids[i-1].guid);        
-        reset_bus(camera);
-    }        	
-
-    dc1394_camera_free_list (list);	
-    dc1394_camera_free (camera);
-    dc1394_free (d);
+    // First reset the bus
+    reset_bus();
 
 	/* initialise the bus */
 	dc1394fwbus = dc1394_new ();
@@ -1364,8 +1419,6 @@ asynStatus FirewireDCAM::drvUserCreate( asynUser *pasynUser,
 										size_t *psize)
 {
 	asynStatus status;
-	int param;
-	const char *functionName = "drvUserCreate";
 
 	status = this->drvUserCreateParam(	pasynUser, drvInfo, pptypeName,
 										psize, FDCParamString, FDC_N_PARAMS);
