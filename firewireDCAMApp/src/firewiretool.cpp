@@ -164,7 +164,7 @@ int main(int argc,char *argv[])
 
 	// Create a linked list with all the cameras we are interested in
 	// (currently either all or the specified --camid)
-	if (fwtopts.camid != NULL)
+/*	if (fwtopts.camid != NULL)
 	{
 		cam = findcam(cams, nAllocatedCams, fwtopts.camid);
 		if (cam == NULL) return -4;
@@ -179,7 +179,7 @@ int main(int argc,char *argv[])
 			curr->camera =
 		}
 	}
-
+*/
 	if (fwtopts.report > 0)
 	{
 		if (cam == NULL)
@@ -306,24 +306,30 @@ void reportModes(dc1394camera_t *cam)
 	for(i=0; i<video_modes.num; i++)
 	{
 		mode = video_modes.modes[i];
-		ERR( dc1394_video_get_supported_framerates(cam, mode, &framerates) );
 		ERR( dc1394_get_image_size_from_video_mode(cam, mode, &width, &height) );
 		is_scalable = dc1394_is_video_mode_scalable (mode);
 		ERR( dc1394_get_color_coding_from_video_mode(cam, mode, &color_coding) );
-		ERR( dc1394_video_get_supported_framerates(cam, mode, &framerates) );
 
 		printf(" %4d |", (unsigned int)mode);
 		printf(" %4d x %4d |", width, height);
 		is_scalable ? printf("    YES   |") : printf("     NO   |");
 		printf(" %10s (%4d) |", getColorCodeString(color_coding), (unsigned int)color_coding);
 
-		for (j=0; j<framerates.num; j++)
+		if (!is_scalable)
 		{
-			ERR( dc1394_framerate_as_float(framerates.framerates[j], &framerate) );
-			printf(" %5.2f ", framerate);
+			ERR( dc1394_video_get_supported_framerates(cam, mode, &framerates) );
+			for (j=0; j<framerates.num; j++)
+			{
+				ERR( dc1394_framerate_as_float(framerates.framerates[j], &framerate) );
+				printf(" %5.2f ", framerate);
+			}
+			for (q=0;q<(5-framerates.num);q++) printf("       ");
+		} else
+		{
+			for (q=0;q<5;q++) printf("       ");
 		}
-		for (q=0;q<(5-framerates.num);q++) printf("       ");
 		printf("|\n");
+
 	}
 	for (i=0;i<tblWidth;i++) printf("_");
 	printf(	"\n");
