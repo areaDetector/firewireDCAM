@@ -65,6 +65,8 @@ static dc1394_t * dc1394fwbus;
 /** List of dc1394 camera handles. */
 static dc1394camera_list_t * dc1394camList;
 
+
+
 /** Main driver class inherited from areaDetectors ADDriver class.
  * One instance of this class will control one firewire camera on the bus.
  */
@@ -97,6 +99,13 @@ public:
 	asynStatus setFrameRate( asynUser *pasynUser, epicsFloat64 dframerate);
 	int getAllFeatures();
 
+	int compareColorMode(dc1394color_coding_t dc1394color, NDColorMode_t ADcolor, NDDataType_t datatype );
+	dc1394video_mode_t lookupVideoMode(NDColorMode_t color, NDDataType_t data);
+	asynStatus setVideoMode(asynUser* pasynUser);
+	asynStatus changeOffset(epicsUInt32 xOff, epicsUInt32 yOff);
+	asynStatus changeSize(epicsUInt32 xSize, epicsUInt32 ySize);
+
+
 
 	/* Data */
 	NDArray *pRaw;
@@ -108,6 +117,8 @@ public:
     dc1394featureset_t features;
     int colour;
 
+    NDColorMode_t requestedColor;
+    NDDataType_t requestedDataType;
 };
 /* end of FirewireDCAM class description */
 
@@ -463,12 +474,12 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 	ERR( err );
 	printf("OK\n");
 
-	printf("Preparing capture...                    ");
+/*	printf("Preparing capture...                    ");
 	fflush(stdout);
 	err=dc1394_capture_setup(this->camera,FDC_DC1394_NUM_BUFFERS, DC1394_CAPTURE_FLAGS_DEFAULT);
 	ERR( err );
 	printf("OK\n");
-
+*/
 
 	/* Create the start and stop event that will be used to signal our
 	 * image grabbing thread when to start/stop	 */
@@ -523,12 +534,13 @@ void FirewireDCAM::imageGrabTask()
 	int numImages, numImagesCounter;
 	int imageMode;
 	int arrayCallbacks;
-	int maxDims[3];
+	int dims[3];
 	NDDataType_t dataType;
 	epicsTimeStamp startTime;
 	int acquire, addr;
 	dc1394error_t err;
 	int externalStopCmd = 0;
+	int itmp;
 	const char *functionName = "imageGrabTask";
 
 	printf("FirewireDCAM::imageGrabTask: Got the image grabbing thread started!\n");
@@ -580,20 +592,21 @@ void FirewireDCAM::imageGrabTask()
 		callParamCallbacks();
 
 		/* Allocate an NDArray for dumping the dc1394 bus data into */
-		getIntegerParam(NDDataType, (int *)&dataType);
+		getIntegerParam(NDDataType, &itmp);
+		dataType = (NDDataType_t)itmp;
 		if (this->colour == 1)
 		{
-			maxDims[0] = 3;
-			getIntegerParam(ADMaxSizeX, &maxDims[1]);
-			getIntegerParam(ADMaxSizeY, &maxDims[2]);
+			dims[0] = 3;
+			getIntegerParam(ADSizeX, &dims[1]);
+			getIntegerParam(ADSizeY, &dims[2]);
 		}
 		else
 		{
-			getIntegerParam(ADMaxSizeX, &maxDims[0]);
-			getIntegerParam(ADMaxSizeY, &maxDims[1]);
+			getIntegerParam(ADSizeX, &dims[0]);
+			getIntegerParam(ADSizeY, &dims[1]);
 		}
 
-	    this->pRaw = this->pNDArrayPool->alloc(2+this->colour, maxDims, dataType, 0, NULL);
+	    this->pRaw = this->pNDArrayPool->alloc(2+this->colour, dims, dataType, 0, NULL);
 		if (this->colour == 1)
 		{
 			setIntegerParam(NDColorMode, NDColorModeRGB1);
@@ -684,6 +697,274 @@ void FirewireDCAM::imageGrabTask()
 	return;
 }
 
+int FirewireDCAM::compareColorMode(dc1394color_coding_t dc1394color, NDColorMode_t ADcolor, NDDataType_t datatype )
+{
+	int retval = 0;
+
+	// We only support 8 and 16 bit datatypes...
+	if (datatype > NDUInt16) return 0;
+
+	switch(ADcolor)
+	{
+	case NDColorModeMono:    /**< Monochromatic image */
+		if (dc1394color == DC1394_COLOR_CODING_MONO8 &&
+		   (datatype == NDInt8 || datatype == NDUInt8 ))    retval = 1;
+		if (dc1394color == DC1394_COLOR_CODING_MONO16 &&
+		   (datatype == NDInt16 || datatype == NDUInt16 ))  retval = 1;
+		if (dc1394color == DC1394_COLOR_CODING_MONO16S&&
+		   (datatype == NDInt16 || datatype == NDUInt16 ))  retval = 1;
+		break;
+	case NDColorModeBayer:   /**< Bayer pattern image, 1 value per pixel but with color filter on detector */
+		if (dc1394color == DC1394_COLOR_CODING_RAW8 &&
+	       (datatype == NDInt8 || datatype == NDUInt8 ))    retval = 1;
+		if (dc1394color == DC1394_COLOR_CODING_RAW16 &&
+		   (datatype == NDInt16 || datatype == NDUInt16 ))  retval = 1;
+		break;
+	case NDColorModeRGB1:    /**< RGB image with pixel color interleave, data array is [3, NX, NY] */
+	case NDColorModeRGB2:    /**< RGB image with row color interleave, data array is [NX, 3, NY]  */
+	case NDColorModeRGB3:    /**< RGB image with plane color interleave, data array is [NX, NY, 3]  */
+		if (dc1394color == DC1394_COLOR_CODING_RGB8 &&
+		   (datatype == NDInt8 || datatype == NDUInt8 ))    retval = 1;
+		if (dc1394color == DC1394_COLOR_CODING_RGB16 &&
+		   (datatype == NDInt16 || datatype == NDUInt16 ))  retval = 1;
+		if (dc1394color == DC1394_COLOR_CODING_RGB16S &&
+		   (datatype == NDInt16 || datatype == NDUInt16 ))  retval = 1;
+		break;
+	case NDColorModeYUV444:  /**< YUV image, 3 bytes encodes 1 RGB pixel */
+		if (dc1394color == DC1394_COLOR_CODING_YUV444 &&
+		   (datatype == NDInt8 || datatype == NDUInt8 ))    retval = 1;
+		break;
+	case NDColorModeYUV422:  /**< YUV image, 4 bytes encodes 2 RGB pixel */
+		if (dc1394color == DC1394_COLOR_CODING_YUV422 &&
+		   (datatype == NDInt8 || datatype == NDUInt8 ))    retval = 1;
+		break;
+	case NDColorModeYUV411:   /**< YUV image, 6 bytes encodes 4 RGB pixels */
+		if (dc1394color == DC1394_COLOR_CODING_YUV411 &&
+		   (datatype == NDInt8 || datatype == NDUInt8 ))    retval = 1;
+		break;
+	default:
+		retval = 0;
+		break;
+	}
+	return retval;
+}
+
+/** Look up a valid video mode based on the desired color mode and datatype
+ *
+ */
+dc1394video_mode_t FirewireDCAM::lookupVideoMode(NDColorMode_t color, NDDataType_t data)
+{
+	dc1394error_t err;
+	dc1394video_modes_t video_modes;
+	dc1394color_coding_t color_coding;
+	dc1394color_codings_t codings;
+	dc1394video_mode_t match;
+	unsigned int i, j;
+	const char *functionName = "lookupVideoMode";
+
+	match = (dc1394video_mode_t)0;
+
+	err=dc1394_video_get_supported_modes(this->camera, &video_modes);
+	ERR( err );
+	/* Loop through all the supported non-scalable modes first to see if there are
+	 * any video modes that match our requirement.
+	 * We only keep the last match we find in the list as this will be the highest resolution. */
+	for (i = 0; i < video_modes.num; i++)
+	{
+		/* If the video mode is scalable we break out of the loop
+		 * because all subsequent modes will be scalable */
+		if (video_modes.modes[i] >= DC1394_VIDEO_MODE_FORMAT7_MIN) break;
+
+		ERR( dc1394_get_color_coding_from_video_mode(this->camera,video_modes.modes[i], &color_coding) );
+		if (compareColorMode(color_coding, color, data))
+		{
+			match = video_modes.modes[i];
+			asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s match found: %d == (%d %d) Non-scalable\n",
+						driverName, functionName, (int)match, (int)color, (int)data);
+
+		}
+	}
+
+	/* Loop through all the supported scalable modes to see if anyone matches our
+	 * requirements. For each mode we need to investigate all possible colour modes
+	 * as each format7 supports multiple color modes...
+	 *
+	 */
+	for(i = video_modes.num-1; i>=0; i--)
+	{
+		// if video mode is less than the first format7 mode, we're done.
+		if (video_modes.modes[i] < DC1394_VIDEO_MODE_FORMAT7_MIN) break;
+
+		ERR( dc1394_format7_get_color_codings (this->camera,video_modes.modes[i], &codings) );
+		for(j=0;j<codings.num;j++)
+		{
+			asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "\t checking format7: %d color code: %d\n",
+					video_modes.modes[i],codings.codings[j]);
+			if (compareColorMode(codings.codings[j], color, data))
+			{
+				match = video_modes.modes[i];
+				asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s match found: %d == (%d %d) scalable\n",
+							driverName, functionName, (int)match, (int)color, (int)data);
+				//break;
+			}
+		}
+	}
+
+	if ((int)match == 0)
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Warning: no match found (%d %d)\n",
+					driverName, functionName, (int)color, (int)data);
+	else
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Best match: %d == (%d %d)\n",
+					driverName, functionName, (int)match, (int)color, (int)data);
+
+	return match;
+}
+
+asynStatus FirewireDCAM::setVideoMode(asynUser* pasynUser)
+{
+	asynStatus status = asynSuccess;
+	int acquiring;
+	dc1394video_mode_t newVideoMode;
+	dc1394video_mode_t oldVideoMode;
+	dc1394color_coding_t color_coding;
+	dc1394color_codings_t codings;
+	unsigned int j;
+
+	epicsUInt32 maxSizeX, maxSizeY;
+	epicsUInt32 sizeX, sizeY;
+	epicsUInt32 minX, minY;
+
+	epicsUInt32 recPacketSize;
+	epicsUInt32 unitSizeX, unitSizeY, unitOffsetX, unitOffsetY;
+
+	const char* functionName = "setVideoMode";
+
+	// Stop camera running
+	getIntegerParam(ADAcquire, &acquiring);
+	this->stopCapture(pasynUser);
+
+	// Find the video mode based on stored datatype and color type. If fails: just return error.
+	newVideoMode = this->lookupVideoMode(this->requestedColor, this->requestedDataType);
+	if ((int) newVideoMode == 0)
+	{
+		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s Warning: Found no video mode to match the requested mode and datatype\n",
+					driverName, functionName);
+		status = asynError;
+		return status;
+	}
+
+	// Read out existing video mode.
+	PERR( pasynUser, dc1394_video_get_mode(this->camera, &oldVideoMode) );
+
+	// Set the video mode and check for failure: if fail then just check the video_mode is
+	// still the same one.
+	status = PERR(pasynUser, dc1394_video_set_mode(this->camera, newVideoMode));
+	if (status == asynError) return status;
+
+
+	// if the new mode is scalable we need to set and get a number of parameters
+	if (dc1394_is_video_mode_scalable (newVideoMode))
+	{
+		// First set the particular color coding in this mode.
+		// Get a list of supported color codings in this format7 mode, then see if one matches
+		// our color coding.
+		status = PERR( pasynUser, dc1394_format7_get_color_codings (this->camera,newVideoMode, &codings) );
+		for(j=0;j<codings.num;j++)
+		{
+			color_coding = codings.codings[j];
+			if (compareColorMode(codings.codings[j], this->requestedColor, this->requestedDataType))
+			{
+				dc1394_format7_set_color_coding (this->camera, newVideoMode, color_coding);
+				break;
+			}
+		}
+		// Sensor size, ROI: size, offsets,
+		PERR(pasynUser, dc1394_format7_get_max_image_size          (this->camera, newVideoMode, &maxSizeX, &maxSizeY) );
+		PERR(pasynUser, dc1394_format7_get_image_size              (this->camera, newVideoMode, &sizeX, &sizeY) );
+		PERR(pasynUser, dc1394_format7_get_image_position          (this->camera, newVideoMode, &minX, &minY) );
+		PERR(pasynUser, dc1394_format7_get_recommended_packet_size (this->camera, newVideoMode, &recPacketSize) );
+		PERR(pasynUser, dc1394_format7_set_packet_size             (this->camera, newVideoMode, recPacketSize) );
+		setIntegerParam(ADMinX, minX);
+		setIntegerParam(ADMinY, minY);
+
+		/* For our own curiosity we just check these values... */
+		PERR( pasynUser, dc1394_format7_get_unit_size     (this->camera, newVideoMode, &unitSizeX, &unitSizeY) );
+		PERR( pasynUser, dc1394_format7_get_unit_position (this->camera, newVideoMode, &unitOffsetX, &unitOffsetY) );
+		asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s::%s packet size=%d\n",
+				driverName, functionName, recPacketSize);
+		asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s::%s minimum size change   = %d, %d\n",
+				driverName, functionName, unitSizeX, unitSizeY);
+		asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s::%s minimum offset change = %d, %d\n",
+				driverName, functionName, unitOffsetX, unitOffsetY);
+	} else
+	{
+		PERR(pasynUser, dc1394_get_image_size_from_video_mode(this->camera, newVideoMode, &sizeX, &sizeY) );
+		maxSizeX = sizeX; maxSizeY = sizeY;
+	}
+
+	this->video_mode = newVideoMode;
+	this->colour_coding = color_coding;
+	setIntegerParam(ADMaxSizeX, maxSizeX);
+	setIntegerParam(ADMaxSizeY, maxSizeY);
+	setIntegerParam(ADSizeX, sizeX);
+	setIntegerParam(ADSizeY, sizeY);
+
+
+	// start camera if we were acquiring before
+
+	return status;
+}
+
+asynStatus FirewireDCAM::changeOffset(epicsUInt32 xOff, epicsUInt32 yOff)
+{
+	dc1394video_mode_t videoMode;
+	int sizeX, sizeY;
+	dc1394color_coding_t color_coding;
+
+	const char* functionName="changeOffset";
+
+	PERR( this->pasynUserSelf, dc1394_video_get_mode(this->camera, &videoMode) );
+	if (!dc1394_is_video_mode_scalable(videoMode))
+	{
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s This video mode (%d) is not scalable\n",
+				driverName, functionName, (int)videoMode);
+		return asynError;
+	}
+
+	getIntegerParam(ADSizeX, &sizeX);
+	getIntegerParam(ADSizeY, &sizeY);
+
+	PERR(this->pasynUserSelf, dc1394_format7_get_color_coding(this->camera, videoMode,&color_coding) );
+
+	PERR( this->pasynUserSelf, dc1394_format7_set_roi(this->camera, videoMode, color_coding, DC1394_USE_MAX_AVAIL, xOff, yOff, sizeX, sizeY) );
+	return asynSuccess;
+}
+asynStatus FirewireDCAM::changeSize(epicsUInt32 xSize, epicsUInt32 ySize)
+{
+	dc1394video_mode_t videoMode;
+	int xOff, yOff;
+	dc1394color_coding_t color_coding;
+
+	const char* functionName="changeSize";
+
+	PERR( this->pasynUserSelf, dc1394_video_get_mode(this->camera, &videoMode) );
+	if (!dc1394_is_video_mode_scalable(videoMode))
+	{
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s This video mode (%d) is not scalable\n",
+				driverName, functionName, (int)videoMode);
+		return asynError;
+	}
+
+	getIntegerParam(ADMinX, &xOff);
+	getIntegerParam(ADMinY, &yOff);
+
+	PERR(this->pasynUserSelf, dc1394_format7_get_color_coding(this->camera, videoMode,&color_coding) );
+
+	PERR( this->pasynUserSelf, dc1394_format7_set_roi(this->camera, videoMode, color_coding, DC1394_USE_MAX_AVAIL, xOff, yOff, xSize, ySize) );
+	return asynSuccess;
+}
+
+
 /** Grabs one image off the dc1394 queue, notifies areaDetector about it and
  * finally clears the buffer off the dc1394 queue.
  * This function expects the mutex to be locked already by the caller!
@@ -696,6 +977,7 @@ int FirewireDCAM::grabImage()
 	int maxSizeX, maxSizeY;
 	NDArrayInfo_t arrayInfo;
 	unsigned char * pTmpData;
+	int itmp;
 
 	dc1394video_frame_t * dc1394_frame;
 	dc1394error_t err;
@@ -711,7 +993,8 @@ int FirewireDCAM::grabImage()
 	status |= getIntegerParam(ADReverseY,     &reverseY);
 	status |= getIntegerParam(ADMaxSizeX,     &maxSizeX);
 	status |= getIntegerParam(ADMaxSizeY,     &maxSizeY);
-	status |= getIntegerParam(NDDataType,     (int *)&dataType);
+	status |= getIntegerParam(NDDataType,     &itmp);
+	dataType = (NDDataType_t)itmp;
 	if (status) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
 			"%s:%s: error getting parameters\n",
 			driverName, functionName);
@@ -775,10 +1058,11 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 	int function = pasynUser->reason;
 	int adstatus;
 	//dc1394error_t err;
-	int addr, rbValue, tmpVal;
+	int addr, rbValue, tmpVal, oldVal;
 	pasynManager->getAddr(pasynUser, &addr);
 
 	rbValue = value;
+	getIntegerParam(function, &oldVal);
 
 	switch(function)
 	{
@@ -806,6 +1090,40 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 	//case ADReverseX:
 	//case ADReverseY:
 
+		break;
+
+	case ADMinX:
+		getIntegerParam(ADMinY, &tmpVal);
+		status = this->changeOffset(value, tmpVal);
+		if (status == asynError) rbValue = oldVal;
+		break;
+	case ADMinY:
+		getIntegerParam(ADMinX, &tmpVal);
+		status = this->changeOffset(tmpVal, value);
+		if (status == asynError) rbValue = oldVal;
+		break;
+	case ADSizeX:
+		getIntegerParam(ADSizeY, &tmpVal);
+		status = this->changeSize(value, tmpVal);
+		if (status == asynError) rbValue = oldVal;
+		break;
+	case ADSizeY:
+		getIntegerParam(ADSizeX, &tmpVal);
+		status = this->changeSize(tmpVal, value);
+		if (status == asynError) rbValue = oldVal;
+		break;
+
+	case NDColorMode:
+		getIntegerParam(NDColorMode, &tmpVal);
+		this->requestedColor = (NDColorMode_t)value;
+		status = this->setVideoMode(pasynUser);
+		if (status == asynError) rbValue = tmpVal;
+		break;
+	case NDDataType:
+		getIntegerParam(NDDataType, &tmpVal);
+		this->requestedDataType = (NDDataType_t)value;
+		status = this->setVideoMode(pasynUser);
+		if (status == asynError) rbValue = tmpVal;
 		break;
 
 	case FDC_feat_val:
@@ -1307,6 +1625,17 @@ asynStatus FirewireDCAM::startCapture(asynUser *pasynUser)
 		return asynError;
 	}
 
+	err = dc1394_capture_setup(this->camera,FDC_DC1394_NUM_BUFFERS, DC1394_CAPTURE_FLAGS_DEFAULT);
+	status = PERR( this->pasynUserSelf, err );
+	if (status == asynError)
+	{
+		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] Setting up capture failed... Staying in idle state.\n",
+					driverName, functionName, this->portName);
+		setIntegerParam(ADAcquire, 0);
+		callParamCallbacks();
+		return status;
+	}
+
 	asynPrint( pasynUser, ASYN_TRACE_FLOW, "%s::%s [%s] Starting firewire transmission\n",
 				driverName, functionName, this->portName);
 	/* Start the camera transmission... */
@@ -1367,6 +1696,7 @@ asynStatus FirewireDCAM::stopCapture(asynUser *pasynUser)
 	/* Stop the actual transmission! */
 	err=dc1394_video_set_transmission(this->camera, DC1394_OFF);
 	status = PERR( pasynUser, err );
+	dc1394_capture_stop(this->camera);
 	if (status == asynError)
 	{
 		/* if stopping transmission results in an error (weird situation!) we print a message
