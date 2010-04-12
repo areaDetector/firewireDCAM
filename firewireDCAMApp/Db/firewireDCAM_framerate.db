@@ -41,3 +41,18 @@ record(mbbi, "$(P)$(R)FR_RBV") {
   field(FVVL, "0x5")
   field(SXVL, "0x6")
 }
+
+record(ao, "$(P)$(R)VIDEOMODE") {
+  field(SCAN, "Passive")
+  field(PINI, "NO")
+  field(DTYP, "asynInt32")
+  field(OUT, "@asyn($(PORT) 0)FDC_VIDEOMODE")
+}
+
+record(ai, "$(P)$(R)BANDWIDTH") {
+  field(SCAN, "I/O Intr")
+  field(PINI, "NO")
+  field(DTYP, "asynFloat64")
+  field(INP, "@asyn($(PORT) 0)FDC_BANDWIDTH")
+  field(EGU, "%")
+}

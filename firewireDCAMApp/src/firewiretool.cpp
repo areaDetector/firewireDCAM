@@ -309,6 +309,10 @@ void reportModes(dc1394camera_t *cam)
 		ERR( dc1394_get_image_size_from_video_mode(cam, mode, &width, &height) );
 		is_scalable = dc1394_is_video_mode_scalable (mode);
 		ERR( dc1394_get_color_coding_from_video_mode(cam, mode, &color_coding) );
+		if (is_scalable)
+		{
+			ERR( dc1394_format7_get_max_image_size (cam, mode, &width, &height) );
+		}
 
 		printf(" %4d |", (unsigned int)mode);
 		printf(" %4d x %4d |", width, height);
