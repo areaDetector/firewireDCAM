@@ -3,8 +3,8 @@ beginScreenProperties
 major 4
 minor 0
 release 1
-x 1343
-y 216
+x 383
+y 184
 w 400
 h 865
 font "arial-bold-r-12.0"
@@ -54,7 +54,7 @@ selectColor index 4
 inconsistentColor index 0
 topShadowColor index 1
 botShadowColor index 11
-controlPv "LOC\\$(!W)menu=e:0,Camera,ROI,Waveform"
+controlPv "LOC\\$(!W)menu=e:0,Camera,ROI,Waveform,File"
 font "arial-bold-r-12.0"
 orientation "horizontal"
 endObjectProperties
@@ -172,16 +172,18 @@ botShadowColor index 11
 displaySource "menu"
 filePv "LOC\\$(!W)menu"
 sizeOfs 5
-numDsps 3
+numDsps 4
 displayFileName {
   0 "ADBase"
   1 "NDPluginBase"
   2 "NDPluginBase"
+  3 "NDPluginBase"
 }
 symbols {
   0 "P=TESTFWDCAM,R=:CAM:"
   1 "P=TESTFWDCAM,R=:ROI:"
   2 "P=TESTFWDCAM,R=:ARR:"
+  3 "P=TESTFWDCAM,R=:FILE:"
 }
 noScroll
 endObjectProperties
@@ -203,16 +205,18 @@ botShadowColor index 11
 displaySource "menu"
 filePv "LOC\\$(!W)menu"
 sizeOfs 5
-numDsps 3
+numDsps 4
 displayFileName {
   0 "firewireDCAM"
   1 "NDROI"
   2 "NDStdArrays"
+  3 "NDFile"
 }
 symbols {
   0 "P=TESTFWDCAM,R=:CAM:"
   1 "P=TESTFWDCAM,R=:ROI:"
   2 "P=TESTFWDCAM,R=:ARR:"
+  3 "P=TESTFWDCAM,R=:FILE:"
 }
 noScroll
 endObjectProperties

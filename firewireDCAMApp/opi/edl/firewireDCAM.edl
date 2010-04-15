@@ -686,3 +686,79 @@ autoSize
 border
 endObjectProperties
 
+# (Static Text)
+object activeXTextClass
+beginObjectProperties
+major 4
+minor 1
+release 0
+x 10
+y 50
+w 75
+h 20
+font "arial-bold-r-12.0"
+fgColor index 14
+bgColor index 5
+useDisplayBg
+value {
+  "Bandwidth:"
+}
+endObjectProperties
+
+# (Textupdate)
+object TextupdateClass
+beginObjectProperties
+major 10
+minor 0
+release 0
+x 85
+y 50
+w 80
+h 20
+controlPv "$(P)$(R)BANDWIDTH"
+fgColor index 16
+fgAlarm
+bgColor index 10
+fill
+font "arial-bold-r-12.0"
+fontAlign "center"
+endObjectProperties
+
+# (Static Text)
+object activeXTextClass
+beginObjectProperties
+major 4
+minor 1
+release 0
+x 10
+y 80
+w 75
+h 20
+font "arial-bold-r-12.0"
+fgColor index 14
+bgColor index 5
+useDisplayBg
+value {
+  "Video mode:"
+}
+endObjectProperties
+
+# (Textupdate)
+object TextupdateClass
+beginObjectProperties
+major 10
+minor 0
+release 0
+x 85
+y 80
+w 80
+h 20
+controlPv "$(P)$(R)VIDEOMODE"
+fgColor index 16
+fgAlarm
+bgColor index 10
+fill
+font "arial-bold-r-12.0"
+fontAlign "center"
+endObjectProperties
+
