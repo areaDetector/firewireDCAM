@@ -18,10 +18,15 @@ FDC_InitBus()
 # Max memory (arg4) in bytes: 1024x768 x 1 x 14 buffers = 11010048 (Need 3x this if in RGB mode)
 # arg5 = colour mode (B+W)
 
-FDC_Config("LAB2", 0x00B09D01007DE45C, 1, 14, 11010048, 0)
-#imgProConfigure("LAB2ImgPro", 1, 0, "LAB2", 0, 14, 11010048)
+FDC_Config("LAB2", 0x00B09D01007DE45A, 1, 14, 11010048, 0)
 
-dbLoadRecords("firewireDCAM.db", "P=LAB2:,CAM=1, PORT=LAB2")
+# Setup an NDStdArray plugin to read out the image over CA
+NDStdArraysConfigure("ARR1", 10, 0, "LAB2", 0, -1)
+# PortName, Frame Queue Size, Blocking Callbacks, NDArray Port, NDArray Address, Max Address
+imgProConfigure("LAB2ImgPro", 1, 0, "LAB2", 0, 11010048)
+
+dbLoadRecords("/dls_sw/work/R3.14.11/support/firewireDCAM/db/firewireDCAM.db", "P=LAB2:,R='',CAM=1, PORT=LAB2")
+dbLoadRecords("/dls_sw/work/R3.14.11/support/firewireDCAM/db/firewireDCAM_feature.db", "P=LAB2:,R='',CAM=1, PORT=LAB2")
 
 iocInit()
 
