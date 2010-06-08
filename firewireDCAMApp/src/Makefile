@@ -16,7 +16,11 @@ firewiretool_LIBS += dc1394
 LIBRARY_IOC += firewireDCAM
 
 # xxxRecord.dbd will be installed into <top>/dbd
+firewireDCAM_DBD += base.dbd
 DBD += firewireDCAM.dbd
+firewireDCAM_DBD += asyn.dbd
+firewireDCAM_DBD += ADSupport.dbd pluginSupport.dbd
+firewireDCAM_DBD += sscan.dbd calcSupport.dbd busySupport.dbd
 
 # This seems to be necessary to build against the dc1394 libraries...
 # - if anyone knows how to build the dc1394/raw1394 libraries in a 
@@ -27,8 +31,13 @@ USR_CFLAGS_Linux += -std=gnu89
 # The following are compiled and added to the support library
 firewireDCAM_SRCS += drvFirewireDCAM.c
 firewireDCAM_SRCS += firewireDCAM.cpp
-#firewireDCAM_SRCS += drvImgPro.c
-#firewireDCAM_SRCS += imgPro.cpp
+
+# This line says that this IOC Application depends on the
+# xxx Support Module
+firewireDCAM_LIBS += asyn
+firewireDCAM_LIBS += NDPlugin ADBase
+firewireDCAM_LIBS += calc sscan busy
+firewireDCAM_LIBS += dc1394 raw1394
 
 # We don't really need to link against the EPICS Base libraries
 # when we are just compiling a support module. We just have to 
