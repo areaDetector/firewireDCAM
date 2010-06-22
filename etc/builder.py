@@ -1,11 +1,11 @@
 from iocbuilder import Device, AutoSubstitution, SetSimulation
 from iocbuilder.arginfo import *
 
-from iocbuilder.modules.areaDetector import AreaDetector, ADBase, simDetector
+from iocbuilder.modules.areaDetector import AreaDetector, _ADBase, ADBase, simDetector
 from iocbuilder.modules.dc1394 import Dc1394
 
 class _firewireDCAM(AutoSubstitution):
-    TemplateFile="firewireDCAM.template"
+    TemplateFile="firewireDCAM.db"
     SubstitutionOverwrites = [_ADBase]
 
 class firewireDCAM(ADBase):
@@ -25,7 +25,7 @@ class firewireDCAM(ADBase):
     ArgInfo = ADBase.ArgInfo + _firewireDCAM.ArgInfo + makeArgInfo(__init__,
         ID     = Simple('Cam ID with 0x prefix', str),
         SPEED  = Choice('Bus speed', [400, 800]),
-        COLOUR = Enum  ('Colour mode', ['B+W', 'Col'])) 
+        COLOUR = Enum  ('Colour mode', ['B+W', 'Col']),
         BUFFERS = Simple('Maximum number of NDArray buffers to be created for '
             'plugin callbacks', int),
         MEMORY  = Simple('Max memory to allocate, should be maxw*maxh*nbuffer '

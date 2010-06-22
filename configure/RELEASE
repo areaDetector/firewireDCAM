@@ -10,18 +10,16 @@
 
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
-SUPPORT=	/dls_sw/prod/R3.14.10/support
-WORK=		/dls_sw/work/R3.14.10/support
+SUPPORT=	/dls_sw/prod/R3.14.11/support
+WORK=		/dls_sw/work/R3.14.11/support
 
-ASYN=		$(SUPPORT)/asyn/4-12
-AREADETECTOR=	$(SUPPORT)/areaDetector/1-5
-BUSY=		$(SUPPORT)/busy/1-2dls1
-FIREWIREDCAM=	$(WORK)/firewireDCAM
-IMGPRO=		$(WORK)/imgPro
-DC1394=		$(SUPPORT)/dc1394/2-0-2
+ASYN=		$(SUPPORT)/asyn/4-12dls1
+AREADETECTOR=	$(SUPPORT)/areaDetector/1-5dls1
+BUSY=		$(SUPPORT)/busy/1-3
+DC1394=		$(SUPPORT)/dc1394/2-1-2
 RAW1394=	$(SUPPORT)/raw1394/1-3-0
 
 
 # EPICS_BASE usually appears last so other apps can override stuff:
-EPICS_BASE=/dls_sw/epics/R3.14.10/base
+EPICS_BASE=/dls_sw/epics/R3.14.11/base
 -include $(TOP)/configure/RELEASE.private
