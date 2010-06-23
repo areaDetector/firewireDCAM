@@ -5,6 +5,7 @@
 
 
 ## Change the framerate when the camera is not in the ROI/format7 mode
+# % gdatag, mbbinary, rw, $(gda_name=$(PORT)), FR, Set frame rate (firewireDCAM_framerate.vdb)
 record(mbbo, "$(P)$(R)FR") {
   field(SCAN, "Passive")
   field(PINI, "NO")
@@ -27,6 +28,7 @@ record(mbbo, "$(P)$(R)FR") {
 }
 
 ## Read back the framerate setting when not in ROI/format7 mode.
+# % gdatag, mbbinary, ro, $(gda_name=$(PORT)), FR_RBV, Readback for frame rate(firewireDCAM_framerate.vdb)
 record(mbbi, "$(P)$(R)FR_RBV") {
   field(SCAN, "I/O Intr")
 #field(PINI, "YES")
@@ -48,6 +50,7 @@ record(mbbi, "$(P)$(R)FR_RBV") {
   field(SXVL, "0x6")
 }
 
+# % gdatag, pv, rw, $(gda_name=$(PORT)), VIDEOMODE, Set VIDEOMODE (firewireDCAM_framerate.vdb)
 record(ao, "$(P)$(R)VIDEOMODE") {
   field(SCAN, "Passive")
   field(PINI, "NO")
@@ -55,6 +58,7 @@ record(ao, "$(P)$(R)VIDEOMODE") {
   field(OUT, "@asyn($(PORT) 0)FDC_VIDEOMODE")
 }
 
+# % gdatag, pv, rw, $(gda_name=$(PORT)), BANDWIDTH, Read the bandwidth percentage (firewireDCAM_framerate.vdb)
 record(ai, "$(P)$(R)BANDWIDTH") {
   field(SCAN, "I/O Intr")
   field(PINI, "NO")

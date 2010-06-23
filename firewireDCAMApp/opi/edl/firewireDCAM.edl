@@ -3,27 +3,25 @@ beginScreenProperties
 major 4
 minor 0
 release 1
-x 304
-y 247
+x 187
+y 235
 w 390
-h 350
-font "helvetica-medium-r-14.0"
-ctlFont "courier-bold-r-14.0"
-btnFont "helvetica-medium-r-14.0"
+h 820
+font "arial-medium-r-18.0"
+ctlFont "arial-medium-r-18.0"
+btnFont "arial-medium-r-18.0"
 fgColor index 14
 bgColor index 3
 textColor index 14
-ctlFgColor1 index 25
-ctlFgColor2 index 30
-ctlBgColor1 index 5
-ctlBgColor2 index 5
-topShadowColor index 1
-botShadowColor index 11
-title "FirewireDCAM"
+ctlFgColor1 index 14
+ctlFgColor2 index 0
+ctlBgColor1 index 0
+ctlBgColor2 index 14
+topShadowColor index 0
+botShadowColor index 14
 showGrid
 snapToGrid
 gridSize 5
-disableScroll
 endScreenProperties
 
 # (Rectangle)
@@ -33,7 +31,7 @@ major 4
 minor 0
 release 0
 x 0
-y 0
+y 470
 w 390
 h 350
 lineColor index 5
@@ -48,7 +46,7 @@ major 4
 minor 0
 release 0
 x 5
-y 15
+y 485
 w 380
 h 130
 lineColor index 14
@@ -63,39 +61,12 @@ major 4
 minor 0
 release 0
 x 5
-y 165
+y 635
 w 380
 h 180
 lineColor index 14
 fill
 fillColor index 3
-endObjectProperties
-
-# (Menu Mux PV)
-object menuMuxPVClass
-beginObjectProperties
-major 4
-minor 0
-release 0
-x 2000
-y 2000
-w 20
-h 20
-fgColour index 14
-bgColour index 3
-topShadowColour index 1
-botShadowColour index 11
-font "helvetica-medium-r-14.0"
-numItems 1
-symbolTag {
-  0 "."
-}
-symbol0 {
-  0 "auto-label"
-}
-PV0 {
-  0 "$(motor).DESC"
-}
 endObjectProperties
 
 # (Static Text)
@@ -105,7 +76,7 @@ major 4
 minor 1
 release 0
 x 10
-y 195
+y 665
 w 75
 h 20
 font "arial-bold-r-12.0"
@@ -124,7 +95,7 @@ major 10
 minor 0
 release 0
 x 170
-y 190
+y 660
 w 70
 h 30
 controlPv "$(P)$(R)BRIGHTNESS"
@@ -143,7 +114,7 @@ major 4
 minor 0
 release 0
 x 85
-y 195
+y 665
 w 80
 h 20
 fgColor index 25
@@ -163,7 +134,7 @@ major 4
 minor 1
 release 0
 x 10
-y 170
+y 640
 w 70
 h 25
 font "arial-bold-r-12.0"
@@ -182,7 +153,7 @@ major 4
 minor 1
 release 0
 x 85
-y 170
+y 640
 w 70
 h 20
 font "arial-bold-r-12.0"
@@ -202,7 +173,7 @@ major 4
 minor 1
 release 0
 x 170
-y 170
+y 640
 w 70
 h 20
 font "arial-bold-r-12.0"
@@ -222,7 +193,7 @@ major 4
 minor 1
 release 0
 x 245
-y 170
+y 640
 w 65
 h 20
 font "arial-bold-r-12.0"
@@ -242,7 +213,7 @@ major 4
 minor 1
 release 0
 x 315
-y 170
+y 640
 w 65
 h 20
 font "arial-bold-r-12.0"
@@ -262,7 +233,7 @@ major 4
 minor 2
 release 0
 x 10
-y 315
+y 785
 w 370
 h 25
 fgColor index 43
@@ -288,7 +259,7 @@ major 10
 minor 0
 release 0
 x 170
-y 220
+y 690
 w 70
 h 30
 controlPv "$(P)$(R)EXPOSURE"
@@ -307,7 +278,7 @@ major 4
 minor 0
 release 0
 x 85
-y 225
+y 695
 w 80
 h 20
 fgColor index 25
@@ -327,7 +298,7 @@ major 4
 minor 1
 release 0
 x 10
-y 225
+y 695
 w 75
 h 20
 font "arial-bold-r-12.0"
@@ -346,7 +317,7 @@ major 10
 minor 0
 release 0
 x 170
-y 250
+y 720
 w 70
 h 30
 controlPv "$(P)$(R)SHUTTER"
@@ -365,7 +336,7 @@ major 4
 minor 0
 release 0
 x 85
-y 255
+y 725
 w 80
 h 20
 fgColor index 25
@@ -385,7 +356,7 @@ major 4
 minor 1
 release 0
 x 10
-y 255
+y 725
 w 75
 h 20
 font "arial-bold-r-12.0"
@@ -404,7 +375,7 @@ major 10
 minor 0
 release 0
 x 170
-y 280
+y 750
 w 70
 h 30
 controlPv "$(P)$(R)GAIN"
@@ -423,7 +394,7 @@ major 4
 minor 0
 release 0
 x 85
-y 285
+y 755
 w 80
 h 20
 fgColor index 25
@@ -443,7 +414,7 @@ major 4
 minor 1
 release 0
 x 10
-y 285
+y 755
 w 75
 h 20
 font "arial-bold-r-12.0"
@@ -462,7 +433,7 @@ major 4
 minor 0
 release 0
 x 85
-y 25
+y 495
 w 80
 h 20
 fgColor index 25
@@ -482,7 +453,7 @@ major 4
 minor 1
 release 0
 x 10
-y 25
+y 495
 w 75
 h 20
 font "arial-bold-r-12.0"
@@ -501,7 +472,7 @@ major 4
 minor 1
 release 0
 x 5
-y 5
+y 475
 w 58
 h 14
 font "arial-medium-r-12.0"
@@ -521,7 +492,7 @@ major 10
 minor 0
 release 0
 x 245
-y 195
+y 665
 w 65
 h 20
 controlPv "$(P)$(R)BRIGHTNESS_RBV"
@@ -540,7 +511,7 @@ major 10
 minor 0
 release 0
 x 315
-y 195
+y 665
 w 65
 h 20
 controlPv "$(P)$(R)BRIGHTNESS_ABS_RBV"
@@ -559,7 +530,7 @@ major 10
 minor 0
 release 0
 x 245
-y 225
+y 695
 w 65
 h 20
 controlPv "$(P)$(R)EXPOSURE_RBV"
@@ -578,7 +549,7 @@ major 10
 minor 0
 release 0
 x 315
-y 225
+y 695
 w 65
 h 20
 controlPv "$(P)$(R)EXPOSURE_ABS_RBV"
@@ -597,7 +568,7 @@ major 10
 minor 0
 release 0
 x 315
-y 255
+y 725
 w 65
 h 20
 controlPv "$(P)$(R)SHUTTER_ABS_RBV"
@@ -616,7 +587,7 @@ major 10
 minor 0
 release 0
 x 245
-y 255
+y 725
 w 65
 h 20
 controlPv "$(P)$(R)SHUTTER_RBV"
@@ -635,7 +606,7 @@ major 10
 minor 0
 release 0
 x 245
-y 285
+y 755
 w 65
 h 20
 controlPv "$(P)$(R)GAIN_RBV"
@@ -654,7 +625,7 @@ major 10
 minor 0
 release 0
 x 315
-y 285
+y 755
 w 65
 h 20
 controlPv "$(P)$(R)GAIN_ABS_RBV"
@@ -673,7 +644,7 @@ major 4
 minor 1
 release 0
 x 5
-y 155
+y 625
 w 61
 h 14
 font "arial-medium-r-12.0"
@@ -693,7 +664,7 @@ major 4
 minor 1
 release 0
 x 10
-y 50
+y 520
 w 75
 h 20
 font "arial-bold-r-12.0"
@@ -712,7 +683,7 @@ major 10
 minor 0
 release 0
 x 85
-y 50
+y 520
 w 80
 h 20
 controlPv "$(P)$(R)BANDWIDTH"
@@ -731,7 +702,7 @@ major 4
 minor 1
 release 0
 x 10
-y 80
+y 550
 w 75
 h 20
 font "arial-bold-r-12.0"
@@ -750,7 +721,7 @@ major 10
 minor 0
 release 0
 x 85
-y 80
+y 550
 w 80
 h 20
 controlPv "$(P)$(R)VIDEOMODE"
@@ -760,5 +731,29 @@ bgColor index 10
 fill
 font "arial-bold-r-12.0"
 fontAlign "center"
+endObjectProperties
+
+# (Embedded Window)
+object activePipClass
+beginObjectProperties
+major 4
+minor 1
+release 0
+x 0
+y 0
+w 390
+h 470
+fgColor index 14
+bgColor index 3
+topShadowColor index 1
+botShadowColor index 11
+displaySource "file"
+file "ADBase"
+sizeOfs 5
+numDsps 1
+displayFileName {
+  0 "NDPluginBase"
+}
+noScroll
 endObjectProperties
 

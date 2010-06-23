@@ -5,7 +5,7 @@ from iocbuilder.modules.areaDetector import AreaDetector, _ADBase, ADBase, simDe
 from iocbuilder.modules.dc1394 import Dc1394
 
 class _firewireDCAM(AutoSubstitution):
-    TemplateFile="firewireDCAM.db"
+    TemplateFile="firewireDCAM.template"
     SubstitutionOverwrites = [_ADBase]
 
 class firewireDCAM(ADBase):
