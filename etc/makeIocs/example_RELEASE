@@ -1,2 +1,3 @@
 # Place any example specific dependencies here
 
+FFMPEGSERVER=$(WORK)/ffmpegServer
