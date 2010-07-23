@@ -12,6 +12,9 @@
 #include <stdio.h>
 #include <getopt.h>
 
+#include <ellLib.h>
+
+
 #include <dc1394/dc1394.h>
 /** Number of image buffers the dc1394 library will use internally */
 #define FDC_DC1394_NUM_BUFFERS 5
@@ -65,6 +68,7 @@ int allocate_cams(dc1394_t *bus, dc1394camera_list_t *list, dc1394camera_t **cam
 void reportModes(dc1394camera_t *cam);
 void reportFeatures(dc1394camera_t *cam);
 const char* getColorCodeString(dc1394color_coding_t code);
+void reset_bus();
 
 void parseOptions(int argc, char* argv[])
 {
@@ -96,9 +100,8 @@ void parseOptions(int argc, char* argv[])
 					"    --verbose: Switch on verbose print out.\n"
 					"    --camid:   Search for and use a camera on the bus\n"
 					"               with the particular ID (12 digit hex value)\n"
-					"    --reset:   Reset the firewire bus using either the camera\n"
-					"               specified in --camid=nnn or using the camera\n"
-					"               first found on the bus\n"
+					"    --reset:   Reset the firewire bus using the first camera\n"
+					"               found on each chain (generation) of the bus\n"
 					"    --report   Request a report of the found cameras. Will be\n"
 					"               limited to one camera if --camid has been used.\n"
 					"               The optional \'level\' specifies what type of report\n"
@@ -127,7 +130,7 @@ int main(int argc,char *argv[])
     dc1394camera_t ** tmpcams;
     dc1394camera_t * cam = NULL;
     dc1394camera_t *tmpcam = NULL;
-    camListItem_t *head, *curr;
+/*    camListItem_t *head, *curr;*/
     dc1394error_t err;
     int i, nReports=0;
     int nAllocatedCams = 0;
@@ -202,14 +205,7 @@ int main(int argc,char *argv[])
 
 	}
 
-	if (fwtopts.reset)
-	{
-
-		if (fwtopts.camid == NULL) tmpcam = cams[0];
-		else tmpcam = cam;
-		printf("Resetting bus using cam: 0x%16.16llX\n", tmpcam->guid);
-		dc1394_reset_bus(tmpcam);
-	}
+	if (fwtopts.reset) reset_bus();
 
     dc1394_camera_free_list (list);
     dc1394_free (bus);
@@ -226,7 +222,7 @@ int allocate_cams(dc1394_t *bus, dc1394camera_list_t *list, dc1394camera_t **cam
 
 	for (i=0;i<tblWidth;i++) printf("_");
 	printf(	"\n");
-	printf("%19s |%19s |%19s |%11s |%11s |\n", "GUID", "Vendor", "Model","Node","Generation");
+	printf("%19s |%19s |%25s |%8s |%8s |\n", "GUID", "Vendor", "Model","Node","Gen.");
 	for (i=0;i<tblWidth;i++) printf("_");
 	printf(	"\n");
 
@@ -238,7 +234,7 @@ int allocate_cams(dc1394_t *bus, dc1394camera_list_t *list, dc1394camera_t **cam
 		{
 			ERR( dc1394_camera_get_node(camera, &node, &generation) );
 			if (verbose > 0)
-				printf(" 0x%16.16llX |%19s |%19s |%11d |%11d |\n",
+				printf(" 0x%16.16llX |%19s |%25s |%8d |%8d |\n",
 						camera->guid, camera->vendor, camera->model, node, generation);
 			cams[cnt] = camera;
 			cnt++;
@@ -248,6 +244,96 @@ int allocate_cams(dc1394_t *bus, dc1394camera_list_t *list, dc1394camera_t **cam
 	printf(	"\n");
 	return cnt;
 }
+typedef struct camNode_t {
+	ELLNODE node;
+	uint32_t generation;
+	dc1394camera_t *cam;
+}camNode_t;
+
+
+void reset_bus()
+{
+	dc1394_t * d;
+	dc1394camera_list_t * list;
+	dc1394camera_t *cam = NULL;
+    uint32_t generation, latch=0;
+    uint32_t node;
+    ELLLIST camList;
+    camNode_t *camListItem, *tmp;
+    unsigned int i, newBus;
+
+    d = dc1394_new ();
+	ERR( dc1394_camera_enumerate (d, &list) );
+
+	// To reset a multi-bus system it is necessary to find a camera on each
+	// individual bus and call the reset function with that camera.
+	ellInit(&camList);
+
+	// Get the 'generation' parameter for each camera. This parameter indicate
+	// which bus the camera is located on.
+	// For each specific 'generation' we add the camera handle to a list which
+	// we can later use to reset each bus.
+	for (i=0;i<list->num; i++)
+	{
+		fflush(stdout);
+		cam = dc1394_camera_new (d, list->ids[i].guid);
+		ERR( dc1394_camera_get_node(cam, &node, &generation) );
+
+		// Run through the collected list of cameras and check if anyone
+		// has the same 'generation' parameter... (i.e. is on the same bus)
+		tmp=(camNode_t*)ellFirst(&camList);
+		newBus = 1;
+		while(tmp!=NULL)
+		{
+			if (generation == tmp->generation)
+			{
+				newBus = 0;
+				break;
+			}
+			tmp=(camNode_t*)ellNext((ELLNODE*)tmp);
+		}
+
+		// If we havent already listed a camera on this bus -or if this is the
+		// first camera we check: add the camera handle to a list of cameras that
+		// we want to use for resetting busses.
+		// Else free up the camera handle as we won't use it until we instantiate
+		// our driver plugin.
+		if (newBus==1 || i==0)
+		{
+			camListItem = (camNode_t*)calloc(1, sizeof(camNode_t));
+			camListItem->cam = cam;
+			camListItem->generation = generation;
+			ellAdd(&camList, (ELLNODE*)camListItem);
+			latch = generation;
+		} else
+		{
+			// if we dont need the camera handle to reset the bus
+			// we might as well free it up
+			dc1394_camera_free(cam);
+		}
+	}
+
+	// Go through the list of cameras that have been identified to be
+	// on separate physical busses. Call reset for each of them and free
+	// up the camera handle
+	camListItem = (camNode_t*)ellFirst(&camList);
+	while(camListItem != NULL)
+	{
+		printf("Resetting bus: %3d using cam: 0x%16.16llX... ", camListItem->generation, camListItem->cam->guid);
+		fflush(stdout);
+		ERR( dc1394_reset_bus(camListItem->cam) );
+		printf("Done\n");
+		dc1394_camera_free(camListItem->cam);
+		camListItem = (camNode_t*)ellNext((ELLNODE*)camListItem);
+	}
+
+	// Clear up after ourselves.
+	ellFree(&camList);
+    dc1394_camera_free_list (list);
+    dc1394_free (d);
+    printf("\n");
+    return;
+}  
 
 dc1394camera_t* findcam(dc1394camera_t **cams, int ncams, char* guid)
 {
