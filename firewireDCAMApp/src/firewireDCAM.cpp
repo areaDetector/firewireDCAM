@@ -79,7 +79,6 @@ public:
 	/* virtual methods to override from ADDriver */
 	virtual asynStatus writeInt32( asynUser *pasynUser, epicsInt32 value);
 	virtual asynStatus writeFloat64( asynUser *pasynUser, epicsFloat64 value);
-	virtual asynStatus drvUserCreate( asynUser *pasynUser, const char *drvInfo, const char **pptypeName, size_t *psize);
 	void report(FILE *fp, int details);
 
 	/* Local methods to this class */
@@ -114,6 +113,22 @@ public:
     epicsEventId stopEventId;
     dc1394featureset_t features;
     int colour;
+
+protected:
+    int FDC_feat_val;                       /** Feature value (int32 read/write) addr: 0-17 */
+    #define FIRST_FDC_PARAM FDC_feat_val
+    int FDC_feat_val_max;                  /** Feature maximum boundry value (int32 read) addr: 0-17 */
+    int FDC_feat_val_min;                  /** Feature minimum boundry value (int32 read)  addr: 0-17*/
+    int FDC_feat_val_abs;                  /** Feature absolute value (float64 read/write) addr: 0-17 */
+    int FDC_feat_val_abs_max;              /** Feature absolute maximum boundry value (float64 read) addr: 0-17 */
+    int FDC_feat_val_abs_min;              /** Feature absolute minimum boundry value (float64 read) addr: 0-17 */
+    int FDC_feat_mode;                     /** Feature control mode: 0:manual or 1:automatic (camera controlled) (int32 read/write)*/
+    int FDC_feat_available;                /** Is a given featurea available in the camera 1=available 0=not available (int32, read) */
+    int FDC_feat_absolute;                 /** Feature has absolute (floating point) controls available 1=available 0=not available (int32 read) */
+	int FDC_framerate;                     /** Set and read back the frame rate (int32 (enums) read/write)*/
+	int FDC_videomode;                     /** Set and read back the video mode (int32 (enums) read/write)*/
+    int FDC_bandwidth;                     /** Read back the current bandwidth (int32, read)*/
+    #define LAST_FDC_PARAM FDC_bandwidth
 
 };
 /* end of FirewireDCAM class description */
@@ -274,45 +289,27 @@ extern "C" int FDC_Config(const char *portName, const char* camid, int speed, in
 
 /** Specific asyn commands for this support module. These will be used and
  * managed by the parameter library (part of areaDetector). */
-typedef enum FDCParam_t {
-	FDC_feat_val = ADLastStdParam, /** Feature value (int32 read/write) addr: 0-17 */
-	FDC_feat_val_max,                  /** Feature maximum boundry value (int32 read) addr: 0-17 */
-	FDC_feat_val_min,                  /** Feature minimum boundry value (int32 read)  addr: 0-17*/
-	FDC_feat_val_abs,                  /** Feature absolute value (float64 read/write) addr: 0-17 */
-	FDC_feat_val_abs_max,              /** Feature absolute maximum boundry value (float64 read) addr: 0-17 */
-	FDC_feat_val_abs_min,              /** Feature absolute minimum boundry value (float64 read) addr: 0-17 */
-	FDC_feat_mode,                     /** Feature control mode: 0:manual or 1:automatic (camera controlled) (int32 read/write)*/
-	FDC_feat_available,                /** Is a given featurea available in the camera 1=available 0=not available (int32, read) */
-	FDC_feat_absolute,                 /** Feature has absolute (floating point) controls available 1=available 0=not available (int32 read) */
-	FDC_framerate,                     /** Set and read back the frame rate (float64 and int32 (enums) read/write)*/
-	FDC_videomode,                     /** Set and read back the video mode in dc1394 terms (dc1394video_mode_t) (int32) */
-	FDC_bandwidth,                     /** used bandwidth in percent (float64) read-only */
-	ADLastDriverParam
-	} FDCParam_t;
+#define FDC_feat_valString           "FDC_FEAT_VAL"
+#define FDC_feat_val_maxString       "FDC_FEAT_VAL_MAX"
+#define FDC_feat_val_minString       "FDC_FEAT_VAL_MIN"
+#define FDC_feat_val_absString       "FDC_FEAT_VAL_ABS"
+#define FDC_feat_val_abs_maxString   "FDC_FEAT_VAL_ABS_MAX"
+#define FDC_feat_val_abs_minString   "FDC_FEAT_VAL_ABS_MIN"
+#define FDC_feat_modeString          "FDC_FEAT_MODE"
+#define FDC_feat_availableString     "FDC_FEAT_AVAILABLE"
+#define FDC_feat_absoluteString      "FDC_FEAT_ABSOLUTE"
+#define FDC_framerateString          "FDC_FRAMERATE"
+#define FDC_videomodeString          "FDC_VIDEOMODE"
+#define FDC_bandwidthString          "FDC_BANDWIDTH"
 
-static asynParamString_t FDCParamString[] = {
-	{FDC_feat_val,           "FDC_FEAT_VAL"},
-	{FDC_feat_val_max,       "FDC_FEAT_VAL_MAX"},
-	{FDC_feat_val_min,       "FDC_FEAT_VAL_MIN"},
-	{FDC_feat_val_abs,       "FDC_FEAT_VAL_ABS"},
-	{FDC_feat_val_abs_max,   "FDC_FEAT_VAL_ABS_MAX"},
-	{FDC_feat_val_abs_min,   "FDC_FEAT_VAL_ABS_MIN"},
-	{FDC_feat_mode,          "FDC_FEAT_MODE"},
-	{FDC_feat_available,     "FDC_FEAT_AVAILABLE"},
-	{FDC_feat_absolute,      "FDC_FEAT_ABSOLUTE"},
-	{FDC_framerate,          "FDC_FRAMERATE"},
-	{FDC_videomode,          "FDC_VIDEOMODE"},
-	{FDC_bandwidth,          "FDC_BANDWIDTH"},
-	};
+/** Number of asyn parameters (asyn commands) this driver supports. */
+#define NUM_FDC_PARAMS (&LAST_FDC_PARAM - &FIRST_FDC_PARAM + 1)
 
 /** Feature mapping from DC1394 library enums to a local driver enum
  * The local driver identifies a feature based on the address of the asyn request.
  * The address range is [0..DC1394_FEATURE_NUM-1] and the dc1394 feature enum starts
  * at an offset of DC1394_FEATURE_MIN... */
 #define FDC_DC1394_FEATOFFSET DC1394_FEATURE_MIN
-
-/** Number of asyn parameters (asyn commands) this driver supports. */
-#define FDC_N_PARAMS (sizeof( FDCParamString)/ sizeof(FDCParamString[0]))
 
 static void imageGrabTaskC(void *drvPvt)
 {
@@ -334,12 +331,13 @@ static void imageGrabTaskC(void *drvPvt)
  */
 FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 							int maxBuffers, size_t maxMemory, int colour )
-	: ADDriver(portName, DC1394_FEATURE_NUM, ADLastDriverParam, maxBuffers, maxMemory,
+	: ADDriver(portName, DC1394_FEATURE_NUM, NUM_FDC_PARAMS, maxBuffers, maxMemory,
 			0, 0, // interfacemask and interruptmask
 			ASYN_MULTIDEVICE | ASYN_CANBLOCK, 1, // asynflags and autoconnect,
 			0, 0),// thread priority and stack size
 		pRaw(NULL)
 {
+	printf("***: %d\n", FIRST_FDC_PARAM);
 	const char *functionName = "FirewireDCAM";
 	int dimensions[2];
 	unsigned int sizeX, sizeY;
@@ -491,6 +489,20 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 	/* Set the parameters from the camera in our areaDetector param lib */
 	printf("Setting the areaDetector parameters...  ");
 	fflush(stdout);
+	
+    createParam(FDC_feat_valString,             asynParamInt32,   &FDC_feat_val);
+    createParam(FDC_feat_val_maxString,         asynParamInt32,   &FDC_feat_val_max);
+    createParam(FDC_feat_val_minString,         asynParamInt32,   &FDC_feat_val_min);
+    createParam(FDC_feat_val_absString,         asynParamFloat64, &FDC_feat_val_abs);
+    createParam(FDC_feat_val_abs_maxString,     asynParamFloat64, &FDC_feat_val_abs_max);
+    createParam(FDC_feat_val_abs_minString,     asynParamFloat64, &FDC_feat_val_abs_min);
+    createParam(FDC_feat_modeString,            asynParamInt32,   &FDC_feat_mode);
+    createParam(FDC_feat_availableString,       asynParamInt32,   &FDC_feat_available);
+    createParam(FDC_feat_absoluteString,        asynParamInt32,   &FDC_feat_absolute);
+    createParam(FDC_framerateString,            asynParamInt32,   &FDC_framerate);
+    createParam(FDC_videomodeString,            asynParamInt32,   &FDC_videomode);        
+    createParam(FDC_bandwidthString,            asynParamFloat64, &FDC_bandwidth);
+	
     status =  setStringParam (ADManufacturer, this->camera->vendor);
     status |= setStringParam (ADModel, this->camera->model);
     status |= setIntegerParam(ADMaxSizeX, dimensions[0]);
@@ -506,9 +518,10 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
          fprintf(stderr, "ERROR %s: unable to set camera parameters\n", functionName);
          return;
     } else printf("OK\n");
-
+    
+    setIntegerParam(ADAcquire, 0);
 	/* Start up acquisition thread */
-    printf("Starting up image grabbing task...     ");
+    printf("Starting up image grabbing task...      ");
 	fflush(stdout);
     status = (epicsThreadCreate("imageGrabTask",
     		epicsThreadPriorityMedium,
@@ -1035,18 +1048,18 @@ int FirewireDCAM::grabImage()
 	dc1394error_t err;
 	const char* functionName = "grabImage";
 
-	status |= getIntegerParam(ADBinX,         &binX);
-	status |= getIntegerParam(ADBinY,         &binY);
+/*	status |= getIntegerParam(ADBinX,         &binX);
+	status |= getIntegerParam(ADBinY,         &binY);*/
 	status |= getIntegerParam(ADMinX,         &minX);
 	status |= getIntegerParam(ADMinY,         &minY);
 	status |= getIntegerParam(ADSizeX,        &sizeX);
 	status |= getIntegerParam(ADSizeY,        &sizeY);
-	status |= getIntegerParam(ADReverseX,     &reverseX);
+/*	status |= getIntegerParam(ADReverseX,     &reverseX);
 	status |= getIntegerParam(ADReverseY,     &reverseY);
 	status |= getIntegerParam(ADMaxSizeX,     &maxSizeX);
 	status |= getIntegerParam(ADMaxSizeY,     &maxSizeY);
 	status |= getIntegerParam(NDDataType,     &itmp);
-	dataType = (NDDataType_t)itmp;
+	dataType = (NDDataType_t)itmp;*/
 	if (status) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
 			"%s:%s: error getting parameters\n",
 			driverName, functionName);
@@ -1110,15 +1123,14 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 	int function = pasynUser->reason;
 	int adstatus;
 	//dc1394error_t err;
-	int addr, rbValue, tmpVal, oldVal, acquiring;
+	int addr, rbValue, tmpVal, oldVal;
+	int wasAcquiring = 0;
 	pasynManager->getAddr(pasynUser, &addr);
 
 	rbValue = value;
 	getIntegerParam(function, &oldVal);
 
-	switch(function)
-	{
-	case ADAcquire:
+    if (function == ADAcquire) {
 		getIntegerParam(ADStatus, &adstatus);
 		if (value && (adstatus == ADStatusIdle))
 		{
@@ -1128,57 +1140,45 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 		{
 			status = this->stopCapture(pasynUser);
 		}
-		break;
-
-	case ADImageMode:
-	case ADNumImages:
-	case ADAcquirePeriod:
-	case ADNumImagesCounter:
-	case ADTriggerMode:
-	case NDArrayCallbacks:
-		break;
-
-	case ADMinX:
-	case ADMinY:
-	case ADSizeX:
-	case ADSizeY:
-	case NDColorMode:
-	case NDDataType:
-		getIntegerParam(ADAcquire, &acquiring);
-		if (acquiring) this->stopCapture(pasynUser);
-		break;
-
-	case FDC_feat_val:
+    } else if ( (function == ADImageMode) ||
+                (function == ADNumImages) ||
+                (function == ADAcquirePeriod)  ||
+                (function == ADNumImagesCounter)  ||
+                (function == ADTriggerMode) ||
+                (function == NDArrayCallbacks)) {
+		// Do nothing
+    } else if ( (function == ADSizeX) ||
+                (function == ADSizeY) ||
+                (function == ADMinX)  ||
+                (function == ADMinY)  ||
+                (function == NDColorMode) ||
+                (function == NDDataType)) {
+		getIntegerParam(ADAcquire, &wasAcquiring);
+		if (wasAcquiring) this->stopCapture(pasynUser);
+    } else if (function == FDC_feat_val) {
 		/* First check if the camera is set for manual control... */
 		getIntegerParam(addr, FDC_feat_mode, &tmpVal);
 		/* if it is not set to 'manual' (0) then we do set it to manual */
 		if (tmpVal != 0) status = this->setFeatureMode(pasynUser, 0, NULL);
-		if (status == asynError) break;
-
-		/* now send the feature value to the camera */
-		status = this->setFeatureValue(pasynUser, value, &rbValue);
-		if (status == asynError) break;
-
-		/* update all feature values to check if any settings have changed */
-		status = (asynStatus) this->getAllFeatures();
-		break;
-
-	case FDC_feat_mode:
+		if (status != asynError) {
+			/* now send the feature value to the camera */
+			status = this->setFeatureValue(pasynUser, value, &rbValue);
+			if (status != asynError) {
+				/* update all feature values to check if any settings have changed */
+				status = (asynStatus) this->getAllFeatures();
+			}
+		}
+    } else if (function == FDC_feat_mode) {
 		asynPrint(pasynUser, ASYN_TRACE_FLOW, "FDC_feat_mode: setting value: %d\n", value);
 		status = this->setFeatureMode(pasynUser, value, &rbValue);
 		asynPrint(pasynUser, ASYN_TRACE_FLOW, "FDC_feat_mode: readback value: %d\n", rbValue);
-		break;
-
-	case FDC_framerate:
+    } else if (function == FDC_framerate) {
 		asynPrint(pasynUser, ASYN_TRACE_FLOW, "FDC_framerate: setting value: %d\n", value);
 		status = this->setFrameRate(pasynUser, value);
-		break;
-
-	default:
+    } else { 
 		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s Function not implemented: %d; val=%d\n",
 					driverName, "writeInt32", function, value);
 		status = asynError;
-		break;
 	}
 
 	//if (status != asynError) status = setIntegerParam(function, value);
@@ -1187,6 +1187,9 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 	//if (status != asynError) callParamCallbacks();
 	/* Call the callback for the specific address .. and address ... weird? */
 	if (status != asynError) callParamCallbacks(addr, addr);
+	if (wasAcquiring) {
+		this->startCapture(pasynUser);
+	}
 	return status;
 }
 
@@ -1203,26 +1206,22 @@ asynStatus FirewireDCAM::writeFloat64( asynUser *pasynUser, epicsFloat64 value)
 	int addr, tmpVal;
 	pasynManager->getAddr(pasynUser, &addr);
 
-	switch(function)
-	{
-	case FDC_feat_val_abs:
+	if (function == FDC_feat_val_abs) {
 		/* First check if the camera is set for manual control... */
 		getIntegerParam(addr, FDC_feat_mode, &tmpVal);
 		/* if it is not set to 'manual' (0) then we do set it to manual */
 		if (tmpVal != 0) status = this->setFeatureMode(pasynUser, 0, NULL);
-		if (status == asynError) break;
-
-		status = this->setFeatureAbsValue(pasynUser, value, &rbValue);
-		if (status == asynError) break;
-		/* update all feature values to check if any settings have changed */
-		status = (asynStatus) this->getAllFeatures();
-		break;
-
-	default:
+		if (status != asynError) {
+			status = this->setFeatureAbsValue(pasynUser, value, &rbValue);
+			if (status != asynError) {
+				/* update all feature values to check if any settings have changed */
+				status = (asynStatus) this->getAllFeatures();
+			} else printf("Wrong!\n");
+		}  else printf("Wrong2!\n");
+	} else {
 		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s Function not implemented for function %d; val=%.4f\n",
 					"FirewireDCAM", "writeFloat64", function, value);
 		status = asynError;
-		break;
 	}
 
 	if (status != asynError) status = setDoubleParam(addr, function, rbValue);
@@ -1297,8 +1296,6 @@ asynStatus FirewireDCAM::setFeatureMode(asynUser *pasynUser, epicsInt32 value, e
 	char *featureName = NULL;
 	unsigned int i;
 
-	featureName = (char*)calloc(255, sizeof(char));
-
 	/* First check if the feature is valid for this camera */
 	status = this->checkFeature(pasynUser, &featInfo, &featureName, functionName);
 	if (status == asynError) return status;
@@ -1348,7 +1345,7 @@ asynStatus FirewireDCAM::setFeatureValue(asynUser *pasynUser, epicsInt32 value, 
 	dc1394error_t err;
 	epicsUInt32 min, max;
 	const char *functionName = "setFeatureValue";
-	char featureName[255];
+	char *featureName;
 
 	/* First check if the feature is valid for this camera */
 	status = this->checkFeature(pasynUser, &featInfo, (char**)&featureName, functionName);
@@ -1366,7 +1363,8 @@ asynStatus FirewireDCAM::setFeatureValue(asynUser *pasynUser, epicsInt32 value, 
 	}
 
 	/* Set the feature value in the camera */
-	err = dc1394_feature_set_value (this->camera, featInfo->id, (epicsUInt32)value);
+		dc1394_feature_set_absolute_control(this->camera, featInfo->id, DC1394_OFF);
+	err = dc1394_feature_set_value (this->camera, featInfo->id, (epicsUInt32)value);	
 	status = PERR(NULL, err);
 	if(status == asynError) return status;
 
@@ -1396,7 +1394,7 @@ asynStatus FirewireDCAM::setFeatureAbsValue(asynUser *pasynUser, epicsFloat64 va
 	dc1394bool_t featAbsControl;
 	float min, max;
 	const char *functionName = "setFeatureAbsValue";
-	char featureName[255];
+	char *featureName;
 
 	/* First check if the feature is valid for this camera */
 	status = this->checkFeature(pasynUser, &featInfo, (char**)&featureName, functionName);
@@ -1425,6 +1423,7 @@ asynStatus FirewireDCAM::setFeatureAbsValue(asynUser *pasynUser, epicsFloat64 va
 	}
 
 	/* Finally set the feature value in the camera */
+	dc1394_feature_set_absolute_control(this->camera, featInfo->id, DC1394_ON);
 	err = dc1394_feature_set_absolute_value (this->camera, featInfo->id, (float)value);
 	status = PERR(NULL, err);
 	if(status == asynError) return status;
@@ -1769,31 +1768,6 @@ asynStatus FirewireDCAM::err( asynUser* asynUser, dc1394error_t dc1394_err, int 
 	else asynPrint( this->pasynUserSelf, ASYN_TRACE_ERROR, "### ERROR_%d [%d][%s]: dc1394 says: \"%s\" ###\n", dc1394_err, errOriginLine, this->portName, errMsg);
 	return asynError;
 }
-
-/** Create an asyn user for the driver.
- * Maps the integer/enum asyn commands on to a string representation that
- * can be used to indicate a certain command in in the INP/OUT field of a record.
- * \param pasynUser
- * \param drvInfo
- * \param pptypeName
- * \param psize
- * \return asynStatus Either asynError or asynSuccess
- */
-asynStatus FirewireDCAM::drvUserCreate( asynUser *pasynUser,
-										const char *drvInfo,
-										const char **pptypeName,
-										size_t *psize)
-{
-	asynStatus status;
-
-	status = this->drvUserCreateParam(	pasynUser, drvInfo, pptypeName,
-										psize, FDCParamString, FDC_N_PARAMS);
-
-	/* If not a local driver parameter, then see if it is a base class parameter */
-	if (status) status = ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
-	return status;
-}
-
 
 /** Print out a report. Not yet implemented!
  * \param fp Stream or file pointer to write the report to.
