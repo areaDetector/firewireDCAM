@@ -57,7 +57,7 @@ example_LIBS += dc1394
 # Libraries supplied by areaDetector
 # We are not using them but they have to be declared to find the symbols
 # in libNDPlugin.
-example_LIBS_Linux += NeXus mfhdf df hdf5 mxml
+example_LIBS_Linux += NeXus mfhdf df hdf5 mxml PvAPI ImageLib
 # Libraries from the host system which areaDetector (libNDPlugin) require
 example_SYS_LIBS_Linux += tiff jpeg z
 
