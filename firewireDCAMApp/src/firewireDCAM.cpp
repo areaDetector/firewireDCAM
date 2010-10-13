@@ -61,9 +61,10 @@
 /** Only used for debugging/error messages to identify where the message comes from*/
 static const char *driverName = "FirewireDCAM";
 /** dc1394 handle to the firewire bus.  */
-static dc1394_t * dc1394fwbus;
+static dc1394_t * dc1394fwbus = NULL;
 /** List of dc1394 camera handles. */
-static dc1394camera_list_t * dc1394camList;
+static dc1394camera_list_t * dc1394camList = NULL;
+void reset_bus();
 
 
 
@@ -84,6 +85,7 @@ public:
 	/* Local methods to this class */
 	asynStatus err( asynUser* asynUser, dc1394error_t dc1394_err, int errOriginLine);
 	void imageGrabTask();
+	dc1394error_t captureDequeueTimeout(dc1394camera_t *camera, dc1394video_frame_t **frame, epicsFloat64 timeout);
 	int grabImage();
 	asynStatus startCapture(asynUser *pasynUser);
 	asynStatus stopCapture(asynUser *pasynUser);
@@ -104,6 +106,8 @@ public:
 	asynStatus setRoi(asynUser *pasynUser);
 	asynStatus getDimensions(asynUser *pasynUser);
 
+	void setAcquireParam(int acquire);
+
 	/* Data */
 	NDArray *pRaw;
 	dc1394camera_t *camera;
@@ -113,6 +117,7 @@ public:
     epicsEventId stopEventId;
     dc1394featureset_t features;
     int colour;
+    unsigned long long camguid;
 
 protected:
     int FDC_feat_val;                       /** Feature value (int32 read/write) addr: 0-17 */
@@ -133,9 +138,35 @@ protected:
 };
 /* end of FirewireDCAM class description */
 
+
+
+typedef struct camList_t {
+	ELLNODE node;
+	FirewireDCAM *fdc;
+	dc1394camera_t *cam;
+}camList_t;
+
+/** A singleton class that keep a list of the (configured) cameras on the bus.
+ *
+ */
+class BusManager
+{
+public:
+	static BusManager* getInstance();
+	void addDriverInstance(FirewireDCAM* fdc);
+	void resetBus();
+private:
+	BusManager();
+	static BusManager* instance;
+	ELLLIST bus;
+};
+BusManager* BusManager::instance = NULL;
+
+
 typedef struct camNode_t {
 	ELLNODE node;
 	uint32_t generation;
+	uint64_t *newguid;
 	dc1394camera_t *cam;
 }camNode_t;
 
@@ -237,6 +268,9 @@ extern "C" int FDC_InitBus(void)
     dc1394error_t err;
     unsigned int i;
 
+    if (dc1394camList!=NULL) dc1394_camera_free_list(dc1394camList);
+    if (dc1394fwbus!=NULL) dc1394_free(dc1394fwbus);
+
     // First reset the bus
     reset_bus();
 
@@ -262,6 +296,128 @@ extern "C" int FDC_InitBus(void)
 	return 0;
 }
 
+
+BusManager::BusManager()
+{
+	ellInit( &(this->bus) );
+}
+
+/* Return always the same instance of the bus manager (singleton) */
+BusManager* BusManager::getInstance()
+{
+	if (BusManager::instance == NULL)
+	{
+		BusManager::instance = new BusManager();
+	}
+	return BusManager::instance;
+}
+
+/* Add a FirewireDCAM areaDetector driver instance (one camera) to
+ * the internal list of driver instances. */
+void BusManager::addDriverInstance(FirewireDCAM* fdc)
+{
+	camList_t* item;
+	printf("BusManager: adding driver instance: \'%s\'\n", fdc->portName);
+	item = (camList_t*)calloc(1,sizeof(camList_t));
+	item->fdc = fdc;
+	ellAdd(&this->bus, (ELLNODE*)item);
+}
+
+/* Perform a bus reset while ensuring none of the areaDetector driver
+ * instances will access any dc1394 camera functions.
+ * After a bus reset the drivers internal camera handles will be
+ * re-initialised.  */
+void BusManager::resetBus()
+{
+	camList_t* item=NULL;
+	dc1394error_t err;
+	epicsEventWaitStatus eventStatus;
+	unsigned int i;
+
+	// Iterate through all the configured camera drivers on the bus
+	// to stop them from talking to the cameras
+	item = (camList_t*)ellFirst(&this->bus);
+	while(item!=NULL)
+	{
+		printf("BusManager [%s]: setting ADAcquire to 0\n", item->fdc->portName);
+		// First set the drivers 'acquire' parameter to 0 so the image grabbing
+		// thread will pause, waiting for a start event
+		item->fdc->setAcquireParam(0);
+
+		// Wait for a 'stopped' event to say the image thread has stopped
+		printf("BusManager [%s]: waiting for 'stopEventId'\n", item->fdc->portName);
+		eventStatus = epicsEventWaitWithTimeout(item->fdc->stopEventId, 3.0);
+
+		// Grab the lock so users can't try to write to the camera
+		//printf("BusManager [%s]: locking port\n", item->fdc->portName);
+		//item->fdc->lock();
+		item=(camList_t*)ellNext((ELLNODE*)item);
+	}
+
+	// Perform the bus reset on each camera and free the handles
+	item = (camList_t*)ellFirst(&this->bus);
+	while(item!=NULL)
+	{
+		printf("BusManager: resetting camera: %llX\n", item->fdc->camera->guid);
+		dc1394_reset_bus(item->fdc->camera);
+		// Free the drivers camera handle
+		dc1394_camera_free(item->fdc->camera);
+		item=(camList_t*)ellNext((ELLNODE*)item);
+	}
+
+	// Re-initialise (and yet another bus reset)
+	printf("BusManager: re-initialising the bus with FDC_InitBus()\n");
+	FDC_InitBus();
+
+	// Iterate through all configured drivers
+	item = (camList_t*)ellFirst(&this->bus);
+	while(item!=NULL)
+	{
+		item->fdc->camera = NULL;
+		printf("BusManager: attempting to find camera for \'%s\'\n", item->fdc->portName);
+		for (i = 0; i < dc1394camList->num; i++)
+		{
+			// If a camera ID matches a drivers current ID or new requested ID
+			if (item->fdc->camguid == dc1394camList->ids[i].guid)
+			{
+				// Re-initialise the camera handle
+				item->fdc->camera = dc1394_camera_new (dc1394fwbus, dc1394camList->ids[i].guid);
+				printf("BusManager: Re-initialising \'%s\'using camera with GUID %llX\n",
+						item->fdc->portName, item->fdc->camera->guid);
+
+				// Set the cameras video mode
+				item->fdc->setVideoMode(NULL);
+
+				// Now get the bus/camera back in a state we can use it
+				printf("BusManager: setting operation mode 1394B\n");
+				ERR( dc1394_video_set_operation_mode(item->fdc->camera, DC1394_OPERATION_MODE_1394B) );
+				printf("BusManager: setting ISO speed 800Mb/s\n");
+				ERR( dc1394_video_set_iso_speed(item->fdc->camera, DC1394_ISO_SPEED_800));
+
+				//printf("BusManager: capture setup\n");
+				//ERR( dc1394_capture_setup(item->fdc->camera,FDC_DC1394_NUM_BUFFERS, DC1394_CAPTURE_FLAGS_DEFAULT) );
+
+				//printf("BusManager: setting transmission off\n");
+				//ERR( dc1394_video_set_transmission(item->fdc->camera, DC1394_OFF) );
+
+				//printf("BusManager: capture stop\n");
+				//ERR( dc1394_capture_stop(item->fdc->camera) );
+
+				//printf("BusManager: unlocking port \'%s\'\n",item->fdc->portName);
+				//item->fdc->unlock();
+				break;
+			}
+		}
+		if (item->fdc->camera == NULL)
+		{
+			fprintf(stderr,"BusManager: ### ERROR ### For \'%s\' did not find camera with GUID: 0x%16.16llX\n",
+					item->fdc->portName, item->fdc->camguid);
+		}
+		item=(camList_t*)ellNext((ELLNODE*)item);
+	}
+}
+
+
 /** \brief Configuration function to configure one camera.
  *
  * This function need to be called once for each camera to be used by the IOC. A call to this
@@ -282,10 +438,20 @@ extern "C" int FDC_InitBus(void)
  */
 extern "C" int FDC_Config(const char *portName, const char* camid, int speed, int maxBuffers, size_t maxMemory, int colour)
 {
-	new FirewireDCAM( portName, camid, speed, maxBuffers, maxMemory, colour);
+	FirewireDCAM* fdc;
+	BusManager* busman;
+	fdc = new FirewireDCAM( portName, camid, speed, maxBuffers, maxMemory, colour);
+	busman = BusManager::getInstance();
+	busman->addDriverInstance(fdc);
 	return asynSuccess;
 }
 
+extern "C" void FDC_ResetBus()
+{
+	BusManager* busman;
+	busman = BusManager::getInstance();
+	busman->resetBus();
+}
 
 /** Specific asyn commands for this support module. These will be used and
  * managed by the parameter library (part of areaDetector). */
@@ -365,6 +531,7 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 			/* initialise the camera on the bus */
 			camera = dc1394_camera_new (dc1394fwbus, dc1394camList->ids[i].guid);
 			/*printf("cameraInit: Using camera with GUID %llX\n", camera->guid);*/
+			this->camguid = camUID;
 			break;
 		}
 	}
@@ -537,6 +704,10 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 	return;
 }
 
+void FirewireDCAM::setAcquireParam(int acquire)
+{
+	setIntegerParam(ADAcquire, acquire);
+}
 
 /** Task to grab images off the camera and send them up to areaDetector
  *
@@ -656,7 +827,9 @@ void FirewireDCAM::imageGrabTask()
 			/* We abort if we had some problem with grabbing an image...
 			 * This is perhaps not always the desired behaviour but it'll do for now. */
 			setIntegerParam(ADStatus, ADStatusAborting);
-			this->stopCapture(this->pasynUserSelf);
+			setIntegerParam(ADAcquire, 0);
+			externalStopCmd = 0;
+			//this->stopCapture(this->pasynUserSelf);
 			continue;
 		}
 
@@ -868,6 +1041,8 @@ asynStatus FirewireDCAM::setVideoMode(asynUser* pasynUser)
 
 	const char* functionName = "setVideoMode";
 
+	if (pasynUser == NULL) pasynUser = this->pasynUserSelf;
+
 	// Stop camera running
 	getIntegerParam(ADAcquire, &acquiring);
 	if (acquiring) this->stopCapture(pasynUser);
@@ -1029,6 +1204,50 @@ asynStatus FirewireDCAM::setRoi(asynUser *pasynUser)
 	return status;
 }
 
+/** Run the dc1394_capture_dequeue() function in a polling loop until a frame is received or it times out.
+ *
+ */
+dc1394error_t FirewireDCAM::captureDequeueTimeout(dc1394camera_t *camera, dc1394video_frame_t **frame, epicsFloat64 timeout)
+{
+	epicsTimeStamp start, now;
+	dc1394error_t err = DC1394_SUCCESS;
+	dc1394video_frame_t *fptr;
+	epicsFloat64 dt = 0.0;
+	const char* functionName = "captureDequeueTimeout";
+	epicsTimeGetCurrent(&start);
+
+	do
+	{
+		err = dc1394_capture_dequeue(camera, DC1394_CAPTURE_POLICY_POLL, &fptr);
+		epicsTimeGetCurrent(&now);
+		dt = epicsTimeDiffInSeconds(&now, &start);
+		epicsThreadSleep( epicsThreadSleepQuantum() );
+		//asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s err=%d dt=%.3f (timeout=%.2f) fptr=%p\n",
+		//		driverName, functionName,(int)err,dt,timeout,fptr);
+	}while(fptr == NULL && dt <= timeout && err == DC1394_SUCCESS);
+
+	asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s err=%d dt=%.3f (timeout=%.2f) fptr=%p\n",
+			  driverName, functionName,(int)err,dt,timeout,fptr);
+
+	if (dt > timeout)
+	{
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+				"%s:%s: timeout! did not receive a frame within %2.fs\n",
+				driverName, functionName, timeout);
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
+				"%s:%s Attempting to stop video transmission\n", driverName, functionName);
+		err=dc1394_video_set_transmission(this->camera, DC1394_OFF);
+		this->err(this->pasynUserSelf, err, __LINE__);
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
+				"%s:%s Attempting to restart video transmission\n", driverName, functionName);
+		err=dc1394_video_set_transmission(this->camera, DC1394_ON);
+		this->err(this->pasynUserSelf, err, __LINE__);
+	}
+
+	*frame = fptr;
+	return err;
+}
+
 
 /** Grabs one image off the dc1394 queue, notifies areaDetector about it and
  * finally clears the buffer off the dc1394 queue.
@@ -1037,12 +1256,11 @@ asynStatus FirewireDCAM::setRoi(asynUser *pasynUser)
 int FirewireDCAM::grabImage()
 {
 	int status = asynSuccess;
-	NDDataType_t dataType;
-	int binX, binY, minX, minY, sizeX, sizeY, reverseX, reverseY;
-	int maxSizeX, maxSizeY;
+	//NDDataType_t dataType;
+	int minX, minY, sizeX, sizeY;
 	NDArrayInfo_t arrayInfo;
 	unsigned char * pTmpData;
-	int itmp;
+	//int itmp;
 
 	dc1394video_frame_t * dc1394_frame;
 	dc1394error_t err;
@@ -1076,7 +1294,8 @@ int FirewireDCAM::grabImage()
 */
 	/* unlock the mutex while we wait for a new image to be ready */
 	this->unlock();
-	err = dc1394_capture_dequeue(this->camera, DC1394_CAPTURE_POLICY_WAIT, &dc1394_frame);
+	//err = dc1394_capture_dequeue(this->camera, DC1394_CAPTURE_POLICY_WAIT, &dc1394_frame);
+	err = this->captureDequeueTimeout(this->camera, &dc1394_frame, 1.0);
 	status = PERR( this->pasynUserSelf, err );
 	this->lock();
 	if (status) return status;   /* if we didn't get an image properly... */
@@ -1736,8 +1955,12 @@ asynStatus FirewireDCAM::stopCapture(asynUser *pasynUser)
 	/* Stop the actual transmission! */
 	err=dc1394_video_set_transmission(this->camera, DC1394_OFF);
 	status = PERR( pasynUser, err );
+	asynPrint( pasynUser, ASYN_TRACE_FLOW, "%s::%s [%s]    - done stopping transmission\n",
+				driverName, functionName, this->portName);
 	err=dc1394_capture_stop(this->camera);
 	status = PERR( pasynUser, err );
+	asynPrint( pasynUser, ASYN_TRACE_FLOW, "%s::%s [%s]    - done stopping capture\n",
+				driverName, functionName, this->portName);
 	if (status == asynError)
 	{
 		/* if stopping transmission results in an error (weird situation!) we print a message

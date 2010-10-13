@@ -33,11 +33,19 @@ static void firewireDCAMInitBusCallFunc(const iocshArgBuf *args)
 	FDC_InitBus();
 }
 
+static const iocshFuncDef firewireDCAMResetBusFuncDef = {"FDC_ResetBus", 0, NULL};
+static void firewireDCAMResetBusCallFunc(const iocshArgBuf *args)
+{
+	FDC_ResetBus();
+}
+
+
 static void firewireDCAMRegister(void)
 {
 
     iocshRegister(&configFirewireDCAM, configfirewireDCAMCallFunc);
     iocshRegister(&firewireDCAMInitBusFuncDef, firewireDCAMInitBusCallFunc);
+    iocshRegister(&firewireDCAMResetBusFuncDef, firewireDCAMResetBusCallFunc);
 }
 
 epicsExportRegistrar(firewireDCAMRegister);

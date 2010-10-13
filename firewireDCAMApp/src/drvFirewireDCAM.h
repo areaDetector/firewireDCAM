@@ -12,6 +12,7 @@ extern "C" {
 
 int FDC_InitBus(void);
 int FDC_Config(const char *portName, const char* camid, int speed, int maxBuffers, size_t maxMemory, int colour);
+void FDC_ResetBus();
 
 #ifdef __cplusplus
 }
