@@ -13,7 +13,7 @@ static const iocshArg firewireDCAMConfigArg1 = {"ID", iocshArgString};
 static const iocshArg firewireDCAMConfigArg2 = {"Bus speed", iocshArgInt};
 static const iocshArg firewireDCAMConfigArg3 = {"maxBuffers", iocshArgInt};
 static const iocshArg firewireDCAMConfigArg4 = {"maxMemory", iocshArgInt};
-static const iocshArg firewireDCAMConfigArg5 = {"colour", iocshArgInt};
+static const iocshArg firewireDCAMConfigArg5 = {"disableScalable", iocshArgInt};
 static const iocshArg * const firewireDCAMConfigArgs[] =  {&firewireDCAMConfigArg0,
                                                           &firewireDCAMConfigArg1,
                                                           &firewireDCAMConfigArg2,

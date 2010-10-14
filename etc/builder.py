@@ -11,7 +11,7 @@ class firewireDCAM(_ADBase):
     '''Creates a firewireDCAM camera areaDetector driver'''
     gda_template = "firewireDCAM"
     Dependencies = (Dc1394,)    
-    def __init__(self, ID, SPEED = 800, COLOUR = 0, BUFFERS = 50, MEMORY = -1, **args):
+    def __init__(self, ID, SPEED = 800, disableScalable = 0, BUFFERS = 50, MEMORY = -1, **args):
         # Init the superclass
         self.__super.__init__(**args)
         # Init the firewireDCAM class
@@ -24,7 +24,7 @@ class firewireDCAM(_ADBase):
     ArgInfo = _ADBase.ArgInfo + _firewireDCAM.ArgInfo + makeArgInfo(__init__,
         ID     = Simple('Cam ID with 0x prefix', str),
         SPEED  = Choice('Bus speed', [400, 800]),
-        COLOUR = Enum  ('Colour mode', ['B+W', 'Col']),
+        disableScalable = Enum  ('Disable scalable (format 7) mode', ['No', 'Yes']),
         BUFFERS = Simple('Maximum number of NDArray buffers to be created for '
             'plugin callbacks', int),
         MEMORY  = Simple('Max memory to allocate, should be maxw*maxh*nbuffer '
@@ -39,8 +39,10 @@ class firewireDCAM(_ADBase):
         print 'FDC_InitBus()'
 
     def Initialise(self):
+    	print '# FDC_Config(asynPort, cameraID, busSpeed, nBuffers,' \
+	            ' maxMemory, disableScalable)'
         print 'FDC_Config("%(PORT)s", %(ID)s, %(SPEED)d, %(BUFFERS)d,' \
-            ' %(MEMORY)d, %(COLOUR)d)' % self.__dict__
+            ' %(MEMORY)d, %(disableScalable)d)' % self.__dict__
 
 def firewireDCAM_sim(**kwargs):
     return simDetector(1024, 768, **kwargs)

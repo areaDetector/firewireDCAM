@@ -119,7 +119,7 @@ w 80
 h 20
 fgColor index 25
 bgColor index 3
-inconsistentColor index 3
+inconsistentColor index 0
 topShadowColor index 1
 botShadowColor index 11
 controlPv "$(P)$(R)BRIGHTNESS_CTRL"
@@ -438,7 +438,7 @@ w 80
 h 20
 fgColor index 25
 bgColor index 3
-inconsistentColor index 3
+inconsistentColor index 0
 topShadowColor index 1
 botShadowColor index 11
 controlPv "$(P)$(R)FR"

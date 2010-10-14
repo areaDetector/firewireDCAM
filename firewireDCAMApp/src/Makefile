@@ -10,6 +10,12 @@ firewiretool_SRCS_DEFAULT += firewiretool.cpp
 firewiretool_LIBS += dc1394
 firewiretool_LIBS += $(EPICS_BASE_IOC_LIBS)
 
+PROD_IOC += testCams
+testCams_SRCS_DEFAULT += testCams.cpp
+testCams_LIBS += dc1394
+testCams_LIBS += $(EPICS_BASE_IOC_LIBS)
+
+
 # -------------------------------
 # Build a Diamond Support Module
 # -------------------------------

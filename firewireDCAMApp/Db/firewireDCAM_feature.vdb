@@ -24,7 +24,6 @@ record(ai, "$(P)$(R)$(FEAT)_RBV") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL")
-  field(PINI, "YES")
 }
 
 ## Set the $(FEAT) control mode (manual = user configured /auto = camera sets values)
@@ -40,7 +39,6 @@ record(bo, "$(P)$(R)$(FEAT)_CTRL") {
 # % gdatag, binary, ro, $(gda_name=$(PORT)), $(FEAT)_CTRL_RBV, Readback for $(FEAT) Control Manual or Auto (firewireDCAM_feature.vdb)
 record(bi, "$(P)$(R)$(FEAT)_CTRL_RBV") {
   field(SCAN, "I/O Intr")
-  field(PINI, "YES")
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_MODE")
   field(ZNAM, "MANUAL")
@@ -51,7 +49,6 @@ record(bi, "$(P)$(R)$(FEAT)_CTRL_RBV") {
 # % gdatag, binary, rw, $(gda_name=$(PORT)), $(FEAT)_AVL, Availability of $(FEAT) (firewireDCAM_feature.vdb)
 record(bi, "$(P)$(R)$(FEAT)_AVL") {
   field(SCAN, "I/O Intr")
-  field(PINI, "YES")
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_AVAILABLE")
   field(ZNAM, "not available")
@@ -64,7 +61,6 @@ record(ai, "$(P)$(R)$(FEAT)_MIN") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_MIN")
-  field(PINI, "YES")
 }
 
 # % gdatag, pv, rw, $(gda_name=$(PORT)), $(FEAT)_MAX, Maximum value of $(FEAT) (firewireDCAM_feature.vdb)
@@ -72,14 +68,12 @@ record(ai, "$(P)$(R)$(FEAT)_MAX") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_MAX")
-  field(PINI, "YES")
 }
 
 ## Read whether the camera supports absolute (floating point) control of this feature
 # % gdatag, binary, rw, $(gda_name=$(PORT)), $(FEAT)_ABS_AVL, Availability of absolute control of $(FEAT) (firewireDCAM_feature.vdb)
 record(bi, "$(P)$(R)$(FEAT)_ABS_AVL") {
   field(SCAN, "I/O Intr")
-  field(PINI, "YES")
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_ABSOLUTE")
   field(ZNAM, "not available")
@@ -100,7 +94,6 @@ record(ai, "$(P)$(R)$(FEAT)_ABS_RBV") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynFloat64")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS")
-  field(PINI, "YES")
   field(PREC, "3")
 }
 
@@ -110,7 +103,6 @@ record(ai, "$(P)$(R)$(FEAT)_ABS_MAX") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynFloat64")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS_MAX")
-  field(PINI, "YES")
   field(PREC, "3")
 }
 
@@ -120,7 +112,6 @@ record(ai, "$(P)$(R)$(FEAT)_ABS_MIN") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynFloat64")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS_MIN")
-  field(PINI, "YES")
   field(PREC, "3")
 }
 

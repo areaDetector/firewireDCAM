@@ -369,6 +369,7 @@ void reportModes(dc1394camera_t *cam)
 	dc1394video_modes_t video_modes;
 	dc1394framerates_t framerates;
 	dc1394color_coding_t color_coding;
+	dc1394color_codings_t codings;
 	dc1394bool_t is_scalable;
 	dc1394video_mode_t mode;
 	uint32_t width, height;
@@ -398,15 +399,16 @@ void reportModes(dc1394camera_t *cam)
 		if (is_scalable)
 		{
 			ERR( dc1394_format7_get_max_image_size (cam, mode, &width, &height) );
+			ERR( dc1394_format7_get_color_codings (cam,mode, &codings) );
 		}
 
 		printf(" %4d |", (unsigned int)mode);
 		printf(" %4d x %4d |", width, height);
 		is_scalable ? printf("    YES   |") : printf("     NO   |");
-		printf(" %10s (%4d) |", getColorCodeString(color_coding), (unsigned int)color_coding);
 
 		if (!is_scalable)
 		{
+			printf(" %10s (%4d) |", getColorCodeString(color_coding), (unsigned int)color_coding);
 			ERR( dc1394_video_get_supported_framerates(cam, mode, &framerates) );
 			for (j=0; j<framerates.num; j++)
 			{
@@ -416,7 +418,12 @@ void reportModes(dc1394camera_t *cam)
 			for (q=0;q<(5-framerates.num);q++) printf("       ");
 		} else
 		{
-			for (q=0;q<5;q++) printf("       ");
+			int len = 0;
+			for (j=0; j<codings.num; j++)
+			{
+				len += printf(" %s", getColorCodeString(codings.codings[j]));
+			}
+			for (q=len;q<55;q++) printf(" ");
 		}
 		printf("|\n");
 
