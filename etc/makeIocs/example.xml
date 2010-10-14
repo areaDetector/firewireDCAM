@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <components arch="linux-x86">
-	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01007139d0" P="TESTFWDCAM1" PORT="CAM1.CAM" R=":CAM:" TIMEOUT="1" disableScalable="1"/>
+	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01007139d0" P="TESTFWDCAM1" PORT="CAM1.CAM" R=":CAM:" TIMEOUT="1"/>
 	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01007139ba" P="TESTFWDCAM2" PORT="CAM2.CAM" R=":CAM:" TIMEOUT="1"/>
 	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01008118c9" P="TESTFWDCAM3" PORT="CAM3.CAM" R=":CAM:" TIMEOUT="1"/>
 	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01007139c0" P="TESTFWDCAM4" PORT="CAM4.CAM" R=":CAM:" TIMEOUT="1"/>

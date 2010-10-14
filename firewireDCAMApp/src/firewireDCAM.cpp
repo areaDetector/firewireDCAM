@@ -66,7 +66,7 @@ static dc1394_t * dc1394fwbus = NULL;
 static dc1394camera_list_t * dc1394camList = NULL;
 void reset_bus();
 /** Global bus lock to ensure dc1394_capture_setup and dc1394_video_set_transmission in startCapture are done not interrupted */
-static epicsMutexId globalLock = epicsMutexCreate();
+static epicsMutexId setupLock = epicsMutexCreate();
 
 /** Main driver class inherited from areaDetectors ADDriver class.
  * One instance of this class will control one firewire camera on the bus.
@@ -629,6 +629,8 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
     status |= setIntegerParam(FDC_framerate, (int)(framerate - DC1394_FRAMERATE_MIN) + 1);
     status |= setIntegerParam(ADImageMode, ADImageContinuous);
     status |= setIntegerParam(ADNumImages, 100);
+    status |= setIntegerParam(ADBinX, 1);
+    status |= setIntegerParam(ADBinY, 1);
     status |= this->getAllFeatures();
     if (status)
     {
@@ -752,7 +754,7 @@ void FirewireDCAM::imageGrabTask()
 		setIntegerParam(ADStatus, ADStatusWaiting);
 		callParamCallbacks();
 		getDoubleParam((int)DC1394_FEATURE_FRAME_RATE - (int)DC1394_FEATURE_MIN, FDC_feat_val_abs, &fr);
-		err = this->captureDequeueTimeout(this->camera, &dc1394_frame, 2/fr);
+		err = this->captureDequeueTimeout(this->camera, &dc1394_frame, 5/fr);
 		if (err) {
 			/* Frame error */
 			status = PERR( this->pasynUserSelf, err );
@@ -760,7 +762,7 @@ void FirewireDCAM::imageGrabTask()
 		} else if (dc1394_frame==NULL) {
 			/* No frame yet */
 			asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
-					"%s::%s [%s]: camera didn't produce frame. Timed out after %.3f s!\n", driverName, functionName, this->portName, 2/fr);
+					"%s::%s [%s]: camera didn't produce frame. Timed out after %.3f s!\n", driverName, functionName, this->portName, 5/fr);
 			continue;
 		}
 
@@ -835,7 +837,7 @@ dc1394video_mode_t FirewireDCAM::lookupVideoMode(dc1394color_coding_t colorCodin
 	dc1394color_coding_t rbColorCoding;
 	dc1394color_codings_t codings;
 	dc1394video_mode_t match;
-	unsigned int i, j;
+	unsigned int j;
 	const char *functionName = "lookupVideoMode";
 
 	match = (dc1394video_mode_t) 0;
@@ -845,7 +847,7 @@ dc1394video_mode_t FirewireDCAM::lookupVideoMode(dc1394color_coding_t colorCodin
 	/* Loop through all the supported non-scalable modes first to see if there are
 	 * any video modes that match our requirement.
 	 * We only keep the last match we find in the list as this will be the highest resolution. */
-	for (i = 0; i < video_modes.num; i++) {
+	for (unsigned int i = 0; i < video_modes.num; i++) {
 		/* If the video mode is scalable we break out of the loop
 		 * because all subsequent modes will be scalable */
 		if (video_modes.modes[i] >= DC1394_VIDEO_MODE_FORMAT7_MIN) break;
@@ -866,7 +868,7 @@ dc1394video_mode_t FirewireDCAM::lookupVideoMode(dc1394color_coding_t colorCodin
 	 * as each format7 supports multiple color modes...
 	 *
 	 */
-	for(i = video_modes.num-1; i>=0; i--) {
+	for(int i = ((int)video_modes.num)-1; i>=0; i--) {
 		// If we want to ignore scalables, just break out of the loop
 		if (this->disableScalable) break;
 
@@ -964,7 +966,7 @@ asynStatus FirewireDCAM::setRoi(asynUser *pasynUser)
 	dc1394video_mode_t videoMode;
 	unsigned int sizeX, sizeY, maxSizeX, maxSizeY;
 	unsigned int unitSizeX, unitSizeY, unitOffsetX, unitOffsetY;
-	int offsetX, offsetY;
+	int offsetX, offsetY, wasAcquiring;
 	unsigned int packetSize;
 	unsigned int modulus;
 	dc1394color_coding_t rbColorCoding;
@@ -982,6 +984,12 @@ asynStatus FirewireDCAM::setRoi(asynUser *pasynUser)
 		maxSizeY = sizeY;
 		offsetX=0; offsetY=0;
 		goto finally;
+	}
+	getIntegerParam(ADAcquire, &wasAcquiring);
+	if (wasAcquiring)
+	{
+		status = this->stopCaptureAndWait(pasynUser);
+		if (status == asynError) return status;
 	}
 
 	getIntegerParam(ADSizeX, (int*)&sizeX);
@@ -1019,7 +1027,7 @@ asynStatus FirewireDCAM::setRoi(asynUser *pasynUser)
 	PERR(pasynUser, dc1394_format7_get_color_coding(this->camera, videoMode, &rbColorCoding) );
 
 	// Actually set the ROI settings in one big go
-	asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, "%s::%s dc1394_format7_set_roi(): video=%d color=%d\n"
+	asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s::%s dc1394_format7_set_roi(): video=%d color=%d\n"
 			"\t\tmax = (%d,%d) size = (%d,%d) unit = (%d,%d)\n"
 			"\t\toffset = (%d,%d) unit = (%d,%d)\n",
 			driverName, functionName, (int)videoMode, (int)rbColorCoding,
@@ -1032,10 +1040,17 @@ asynStatus FirewireDCAM::setRoi(asynUser *pasynUser)
 	// Read back the ROI settings from the camera again to verify
 	PERR( pasynUser, dc1394_format7_get_roi(this->camera, videoMode, &rbColorCoding, &packetSize,
 										   (unsigned int*)&offsetX, (unsigned int*)&offsetY, &sizeX, &sizeY) );
-	asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, "%s::%s dc1394_format7_get_roi(): video=%d color=%d\n"
+	asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s::%s dc1394_format7_get_roi(): video=%d color=%d\n"
 			"\t\tsize = (%d,%d) offset = (%d,%d)\n",
 			driverName, functionName, (int)videoMode, (int)rbColorCoding,
 			sizeX, sizeY,offsetX, offsetY);
+
+	if (wasAcquiring) {
+		/* It seems to take the firewirebus about 0.35s to receive the first frames after setting framerate.
+		 * Timeout is 5*framerate, so only need to wait for 0.2s here, even at 30fps */
+//		epicsThreadSleep(0.2);
+		this->startCapture(pasynUser);
+	}
 
 	finally:
 	setIntegerParam( ADSizeX,    (int)sizeX);
@@ -1235,8 +1250,7 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
                 (function == ADSizeY) ||
                 (function == ADMinX)  ||
                 (function == ADMinY) ){
-//		getIntegerParam(ADAcquire, &wasAcquiring);
-//		if (wasAcquiring) this->stopCapture(pasynUser);
+    	status = this->setRoi(pasynUser);
     } else if (function == FDC_feat_val) {
 		/* First check if the camera is set for manual control... */
     	int tmpVal;
@@ -1261,13 +1275,16 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 		status = asynError;
 	}
 
-	if (status != asynError) {
+	if (status) {
+		/* write the old value back */
+		setIntegerParam(function, old_value);
+	} else {
 		/* update all feature values to check if any settings have changed */
 		status = (asynStatus) this->getAllFeatures();
+		/* Call the callback */
+		callParamCallbacks();
 	}
 
-	/* Call the callback for the specific address .. and address ... weird? */
-	if (status != asynError) callParamCallbacks();
 	return status;
 }
 
@@ -1592,8 +1609,9 @@ asynStatus FirewireDCAM::setFrameRate( asynUser *pasynUser, epicsInt32 iframerat
 	 *       Or maybe a mutex need to be unlocked for a quick moment to allow setting ADAcquire
 	 *       but I don't know when... */
 	if (wasAcquiring) {
-		/* It seems to take the firewirebus about this long to receive the first frames after setting framerate */
-		epicsThreadSleep(0.3);
+		/* It seems to take the firewirebus about 0.35s to receive the first frames after setting framerate.
+		 * Timeout is 5*framerate, so only need to wait for 0.2s here, even at 30fps */
+		epicsThreadSleep(0.2);
 		this->startCapture(pasynUser);
 	}
 
@@ -1717,51 +1735,9 @@ asynStatus FirewireDCAM::startCapture(asynUser *pasynUser)
 {
 	asynStatus status = asynSuccess;
 	dc1394error_t err;
-//	int acquiring;
 	const char* functionName = "startCapture";
-	//NDDataType_t fdc_datatype;
-	//NDColorMode_t fdc_colormode;
-	//dc1394video_mode_t videoMode;
-#if 0
-	/* return error if already acquiring */
-	getIntegerParam(ADAcquire, &acquiring);
-	if (acquiring)
-	{
-		asynPrint( pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] Camera already acquiring.\n",
-					driverName, functionName, this->portName);
-		return asynError;
-	}
 
-	// See if we can find a supported match in the camera to the desired color mode and datatype
-	videoMode = this->lookupVideoMode(fdc_colormode, fdc_datatype);
-	if (videoMode == 0)
-	{
-		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s Warning: no match found (%d %d)\n",
-					driverName, functionName, (int)fdc_colormode, (int)fdc_datatype);
-		// we did not find a matching mode in the camera so just return an error
-		return asynError;
-	}
-
-	status = this->setVideoMode(pasynUser, videoMode);
-	if (status == asynError)
-	{
-		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] Setting up video mode failed... Staying in idle state.\n",
-					driverName, functionName, this->portName);
-		setIntegerParam(ADAcquire, 0);
-		return status;
-	}
-	status = this->setRoi(pasynUser);
-	if (status == asynError)
-	{
-		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] Setting up ROI... Staying in idle state.\n",
-					driverName, functionName, this->portName);
-		setIntegerParam(ADAcquire, 0);
-		return status;
-	}
-	callParamCallbacks();
-#endif
-
-	epicsMutexLock(globalLock);
+	epicsMutexLock(setupLock);
 	err = dc1394_capture_setup(this->camera,FDC_DC1394_NUM_BUFFERS, DC1394_CAPTURE_FLAGS_DEFAULT);
 	status = PERR( this->pasynUserSelf, err );
 	if (status == asynError)
@@ -1770,7 +1746,7 @@ asynStatus FirewireDCAM::startCapture(asynUser *pasynUser)
 					driverName, functionName, this->portName);
 		setIntegerParam(ADAcquire, 0);
 		callParamCallbacks();
-		epicsMutexUnlock(globalLock);		
+		epicsMutexUnlock(setupLock);		
 		return status;
 	}
 
@@ -1785,13 +1761,13 @@ asynStatus FirewireDCAM::startCapture(asynUser *pasynUser)
 					driverName, functionName, this->portName);
 		setIntegerParam(ADAcquire, 0);
 		callParamCallbacks();
-		epicsMutexUnlock(globalLock);
+		epicsMutexUnlock(setupLock);
 		return status;
 	}
 
 	/* Signal the image grabbing thread that the acquisition/transmission has
 	 * started and it can start dequeueing images from the driver buffer */
-    epicsMutexUnlock(globalLock);
+    epicsMutexUnlock(setupLock);
 	setIntegerParam(ADNumImagesCounter, 0);
 	setIntegerParam(ADAcquire, 1);
 	epicsEventSignal(this->startEventId);
