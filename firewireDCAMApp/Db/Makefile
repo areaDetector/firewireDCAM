@@ -9,7 +9,6 @@ include $(TOP)/configure/CONFIG
 
 DB += firewireDCAM.template
 DB += firewireDCAM_feature.template
-DB += firewireDCAM_framerate.template
 
 include $(TOP)/configure/RULES
 #----------------------------------------
