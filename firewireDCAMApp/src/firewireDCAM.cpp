@@ -50,6 +50,8 @@
 
 /* libdc1394 includes */
 #include <dc1394/dc1394.h>
+/* Needed to set trigger mode, lives in offsets.h */
+#define REG_CAMERA_TRIGGER_MODE             0x830U
 
 /** Print an errorcode to stderr. Convenience macro to be used when an asynUser is not yet available. */
 #define ERR(errCode) if (errCode != 0) fprintf(stderr, "ERROR [%s:%d]: dc1394 code: %d\n", __FILE__, __LINE__, errCode)
@@ -506,9 +508,9 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
 	const char *functionName = "initCamera";
 	int dimensions[2];
 	unsigned int sizeX, sizeY;
-	unsigned int i, status;
-	dc1394trigger_source_t source;
-	dc1394operation_mode_t opMode;
+	unsigned int i, status=0;
+    uint32_t value;
+    dc1394operation_mode_t opMode;
 	dc1394speed_t opSpeed;
 	char chMode = 'A';
 	dc1394video_mode_t videoMode;
@@ -604,11 +606,26 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
 	err = dc1394_feature_get_all (this->camera, &(this->features));
 	ERR(err);
 
+	printf("Getting Trigger mode...                 ");
+	fflush(stdout);
+	err = dc1394_get_control_register(camera, REG_CAMERA_TRIGGER_MODE, &value);
+	ERR( err );
+	if (value == 0x80100000) {
+		status |= setIntegerParam(ADTriggerMode, 0);
+		printf("0x%X (Internal)\n", value);
+	} else if (value == 0x82100000) {
+		status |= setIntegerParam(ADTriggerMode, 1);
+		printf("0x%X (External)\n", value);
+	} else {
+		status |= setIntegerParam(ADTriggerMode, 1);
+		printf("0x%X (Unknown)\n", value);
+	}
+
 	/* Set the parameters from the camera in our areaDetector param lib */
 	printf("Setting the areaDetector parameters...  ");
 	fflush(stdout);
 	
-    status =  setStringParam (ADManufacturer, this->camera->vendor);
+    status |=  setStringParam (ADManufacturer, this->camera->vendor);
     status |= setStringParam (ADModel, this->camera->model);
     status |= setIntegerParam(ADMaxSizeX, dimensions[0]);
     status |= setIntegerParam(ADMaxSizeY, dimensions[1]);
@@ -620,10 +637,11 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
     status |= setIntegerParam(ADBinY, 1);
     status |= setIntegerParam(ADReverseX, 0);
     status |= setIntegerParam(ADReverseY, 0);
-	err = dc1394_external_trigger_get_source(this->camera, &source);
+    err= dc1394_get_control_register(camera, REG_CAMERA_TRIGGER_MODE, &value);
 	status |= PERR( this->pasynUserSelf, err );
-	status |= setIntegerParam(ADTriggerMode, source - DC1394_TRIGGER_SOURCE_MIN);
-
+	/* Flea specific, see:
+	 * http://www.ptgrey.com/support/downloads/documents/TAN2004004_Synchronizing_to_external_signal_DCAM1.31.pdf
+	 */
     status |= this->getAllFeatures();
     if (status)
     {
@@ -772,9 +790,13 @@ void FirewireDCAM::imageGrabTask()
 		/* Get some information about the current feature settings */
 		this->getAllFeatures();
 
-		/* Calculate the bandwidth usage */
+		/* Calculate the bandwidth usage. The 1394 bus has 4915 bandwidth units
+         * available per cycle. Each unit corresponds to the time it takes to send one
+         * quadlet at ISO speed S1600. The bandwidth usage at S400 is thus four times the
+         * number of quadlets per packet.		 
+         */
 		dc1394_video_get_bandwidth_usage(this->camera, &iBandwidth);
-		dBandwidthPercent = iBandwidth/(4915.0/2.0)*100.0;
+		dBandwidthPercent = 100.0 * iBandwidth / 4915.0;
 		setDoubleParam(FDC_bandwidth, dBandwidthPercent);
 
 	}/* back to the top... */
@@ -1257,7 +1279,14 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
     		    function == ADReverseY ) {
     	if (value != 0) status = asynError;
     } else if ( function == ADTriggerMode ) {
-    	err=dc1394_external_trigger_set_source(this->camera, (dc1394trigger_source_t) (DC1394_TRIGGER_SOURCE_MIN + value));
+    	/* Flea specific, see:
+    	 * http://www.ptgrey.com/support/downloads/documents/TAN2004004_Synchronizing_to_external_signal_DCAM1.31.pdf
+    	 */
+    	if (value) {
+    		err = dc1394_set_control_register(camera, REG_CAMERA_TRIGGER_MODE, 0x82100000);
+    	} else {
+    		err = dc1394_set_control_register(camera, REG_CAMERA_TRIGGER_MODE, 0x80100000);
+    	}
     	status = PERR( pasynUser, err );
     } else if ( (function == ADSizeX) ||
                 (function == ADSizeY) ||

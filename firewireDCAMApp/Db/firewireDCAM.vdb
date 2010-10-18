@@ -93,8 +93,8 @@ record(mbbo, "$(P)$(R)FR") {
   field(FRVL, "4")
   field(FVVL, "5")
   field(SXVL, "6")
-  field(VAL, "$(FR=3)")  
-  field(PINI, "YES")  
+  field(VAL, "$(FR=3)")
+  field(PINI, "YES")
 }
 
 ## Read back the framerate setting when not in ROI/format7 mode.
@@ -220,39 +220,6 @@ record(mbbi, "$(P)$(R)ColorMode_RBV") {
   field(SCAN, "I/O Intr")
 }
 
-record(mbbo, "$(P)$(R)TriggerMode") {
-  field(PINI, "YES")
-  field(DTYP, "asynInt32")
-  field(OUT, "@asyn($(PORT),0)TRIGGER_MODE")
-  field(ZRST, "Source 0")
-  field(ZRVL, "0")
-  field(ONST, "Source 1")
-  field(ONVL, "1")
-  field(TWST, "Source 2")
-  field(TWVL, "2")
-  field(THST, "Source 3")
-  field(THVL, "3")
-  field(FRST, "Software")
-  field(FRVL, "4")
-  field(VAL, "4")
-}
-
-record(mbbi, "$(P)$(R)TriggerMode_RBV") {
-  field(DTYP, "asynInt32")
-  field(INP, "@asyn($(PORT),0)TRIGGER_MODE")
-  field(ZRST, "Source 0")
-  field(ZRVL, "0")
-  field(ONST, "Source 1")
-  field(ONVL, "1")
-  field(TWST, "Source 2")
-  field(TWVL, "2")
-  field(THST, "Source 3")
-  field(THVL, "3")
-  field(FRST, "Software")
-  field(FRVL, "4")
-  field(SCAN, "I/O Intr")
-}
-
 expand("firewireDCAM_feature.vdb", firewireDCAM_feature0) {
   macro(NUM, "0")
   macro(FEAT, "BRIGHTNESS")
@@ -364,19 +331,17 @@ expand("firewireDCAM_feature.vdb", firewireDCAM_feature21) {
 }
 
 #! Further lines contain data used by VisualDCT
-#! View(1083,0,1.0)
-#! Record("$(P)$(R)FR",20,14,0,0,"$(P)$(R)FR")
+#! View(3090,0,1.0)
+#! Record("$(P)$(R)FR",20,20,0,0,"$(P)$(R)FR")
 #! Record("$(P)$(R)FR_RBV",260,28,0,0,"$(P)$(R)FR_RBV")
 #! Record("$(P)$(R)VIDEOMODE",500,22,0,0,"$(P)$(R)VIDEOMODE")
 #! Record("$(P)$(R)BANDWIDTH",740,28,0,0,"$(P)$(R)BANDWIDTH")
 #! Record("$(P)$(R)DataType",940,21,0,0,"$(P)$(R)DataType")
-#! Record("$(P)$(R)DataType_RBV",1220,-139,0,0,"$(P)$(R)DataType_RBV")
-#! Record("$(P)$(R)ColorMode",1460,-40,0,0,"$(P)$(R)ColorMode")
-#! Record("$(P)$(R)ColorMode_RBV",1700,-40,0,0,"$(P)$(R)ColorMode_RBV")
-#! Record("$(P)$(R)TriggerMode",1940,29,0,0,"$(P)$(R)TriggerMode")
-#! Record("$(P)$(R)TriggerMode_RBV",2180,23,0,0,"$(P)$(R)TriggerMode_RBV")
+#! Record("$(P)$(R)DataType_RBV",20,21,0,0,"$(P)$(R)DataType_RBV")
+#! Record("$(P)$(R)ColorMode",260,20,0,0,"$(P)$(R)ColorMode")
+#! Record("$(P)$(R)ColorMode_RBV",500,20,0,0,"$(P)$(R)ColorMode_RBV")
 
-#! TemplateInstance("firewireDCAM_feature0",0,880,0,"")
+#! TemplateInstance("firewireDCAM_feature0",960,520,0,"")
 #! TemplateField("firewireDCAM_feature0","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature0","FEAT",16777215,0,1)
 
@@ -396,32 +361,32 @@ expand("firewireDCAM_feature.vdb", firewireDCAM_feature21) {
 #! TemplateField("firewireDCAM_feature3","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature4",940,360,0,"")
+#! TemplateInstance("firewireDCAM_feature4",720,520,0,"")
 #! TemplateField("firewireDCAM_feature4","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature4","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature5",1180,360,0,"")
+#! TemplateInstance("firewireDCAM_feature5",940,800,0,"")
 #! TemplateField("firewireDCAM_feature5","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature5","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature6",1420,360,0,"")
+#! TemplateInstance("firewireDCAM_feature6",1180,520,0,"")
 #! TemplateField("firewireDCAM_feature6","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature6","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature7",1700,280,0,"")
+#! TemplateInstance("firewireDCAM_feature7",1160,800,0,"")
 #! TemplateField("firewireDCAM_feature7","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature7","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature8",1940,20,0,"")
+#! TemplateInstance("firewireDCAM_feature8",1400,540,0,"")
 #! TemplateField("firewireDCAM_feature8","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature8","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature9",2180,20,0,"")
+#! TemplateInstance("firewireDCAM_feature9",1640,540,0,"")
 #! TemplateField("firewireDCAM_feature9","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature9","FEAT",16777215,0,1)
 
@@ -476,12 +441,12 @@ expand("firewireDCAM_feature.vdb", firewireDCAM_feature21) {
 #! TemplateField("firewireDCAM_feature19","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature20",20,380,0,"")
+#! TemplateInstance("firewireDCAM_feature20",240,520,0,"")
 #! TemplateField("firewireDCAM_feature20","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature20","FEAT",16777215,0,1)
 
 
-#! TemplateInstance("firewireDCAM_feature21",260,380,0,"")
+#! TemplateInstance("firewireDCAM_feature21",480,520,0,"")
 #! TemplateField("firewireDCAM_feature21","NUM",16777215,0,1)
 #! TemplateField("firewireDCAM_feature21","FEAT",16777215,0,1)
 
