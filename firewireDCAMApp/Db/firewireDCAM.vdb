@@ -69,6 +69,7 @@
 # % macro, P, Device Prefix
 # % macro, R, Device Suffix
 # % macro, PORT, Asyn Port name
+# % macro, FR, Max framerate enum
 # % macro, gda_name, Name to expose to GDA
 # #
 # This associates the template with an edm screen
