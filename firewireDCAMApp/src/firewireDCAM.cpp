@@ -92,10 +92,10 @@ public:
 
 	/* camera feature control functions */
 	asynStatus initCamera(unsigned long long int camUID);
-	asynStatus setFeatureValue(asynUser *pasynUser, epicsInt32 value, epicsInt32 *rbValue);
-	asynStatus setFeatureAbsValue(asynUser *pasynUser, epicsFloat64 value, epicsFloat64 *rbValue);
-	asynStatus setFeatureMode(asynUser *pasynUser, epicsInt32 value, epicsInt32 *rbValue);
-	asynStatus checkFeature(asynUser *pasynUser, dc1394feature_info_t **featInfo, char** featureName, const char* functionName);
+	asynStatus setFeatureValue(asynUser *pasynUser, int addr, epicsInt32 value, epicsInt32 *rbValue);
+	asynStatus setFeatureAbsValue(asynUser *pasynUser, int addr, epicsFloat64 value, epicsFloat64 *rbValue);
+	asynStatus setFeatureMode(asynUser *pasynUser, int addr, epicsInt32 value, epicsInt32 *rbValue);
+	asynStatus checkFeature(asynUser *pasynUser, int addr, dc1394feature_info_t **featInfo, char** featureName, const char* functionName);
 	asynStatus setFrameRate( asynUser *pasynUser, epicsInt32 iframerate);
 	asynStatus setFrameRate( asynUser *pasynUser, epicsFloat64 dframerate);
 	int getAllFeatures();
@@ -265,7 +265,6 @@ void reset_bus()
 extern "C" int FDC_InitBus(void)
 {
     dc1394error_t err;
-    unsigned int i;
 
     if (dc1394camList!=NULL) dc1394_camera_free_list(dc1394camList);
     if (dc1394fwbus!=NULL) dc1394_free(dc1394fwbus);
@@ -284,14 +283,6 @@ extern "C" int FDC_InitBus(void)
 		dc1394_log_error("No cameras found");
 		return -1;
 	}
-
-	printf("Found %d cameras the bus:\n", dc1394camList->num);
-	for (i = 0; i < dc1394camList->num; i++)
-	{
-		printf("GUID:\t0x%16.16llX\n", dc1394camList->ids[i].guid);
-	}
-
-	printf("\n");
 	return 0;
 }
 
@@ -331,7 +322,6 @@ void BusManager::resetBus()
 	camList_t* item=NULL;
 	//dc1394error_t err;
 	epicsEventWaitStatus eventStatus;
-	unsigned int i;
 
 	// Iterate through all the configured camera drivers on the bus
 	// to stop them from talking to the cameras
@@ -460,7 +450,6 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 		pRaw(NULL)
 {
 	const char *functionName = "FirewireDCAM";
-	asynStatus status;
 	unsigned long long int camUID = 0;
 	unsigned int ret;
 	dc1394error_t err;
@@ -518,12 +507,12 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
 	int dimensions[2];
 	unsigned int sizeX, sizeY;
 	unsigned int i, status;
+	dc1394trigger_source_t source;
 	dc1394operation_mode_t opMode;
 	dc1394speed_t opSpeed;
 	char chMode = 'A';
 	dc1394video_mode_t videoMode;
 	dc1394error_t err;
-    dc1394framerate_t framerate;
 
 	/* configure the camera to the mode and so on... */
 	for (i = 0; i < dc1394camList->num; i++)
@@ -562,7 +551,7 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
 	this->setVideoMode(this->pasynUserSelf);
 
 	/* Get the image size from our current video mode */
-	printf("Getting image dims from mode %2d...       ", (int) videoMode);
+	printf("Getting image dims from mode%3d...      ", (int) videoMode);
 	fflush(stdout);
 	err = dc1394_get_image_size_from_video_mode(this->camera, videoMode, &sizeX, &sizeY);
 	dimensions[0] = (int)sizeX;
@@ -625,12 +614,16 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
     status |= setIntegerParam(ADMaxSizeY, dimensions[1]);
     status |= setIntegerParam(ADSizeX, dimensions[0]);
     status |= setIntegerParam(ADSizeY, dimensions[1]);
-    ERR(dc1394_video_get_framerate(this->camera, &framerate));
-    status |= setIntegerParam(FDC_framerate, (int)(framerate - DC1394_FRAMERATE_MIN) + 1);
     status |= setIntegerParam(ADImageMode, ADImageContinuous);
     status |= setIntegerParam(ADNumImages, 100);
     status |= setIntegerParam(ADBinX, 1);
     status |= setIntegerParam(ADBinY, 1);
+    status |= setIntegerParam(ADReverseX, 0);
+    status |= setIntegerParam(ADReverseY, 0);
+	err = dc1394_external_trigger_get_source(this->camera, &source);
+	status |= PERR( this->pasynUserSelf, err );
+	status |= setIntegerParam(ADTriggerMode, source - DC1394_TRIGGER_SOURCE_MIN);
+
     status |= this->getAllFeatures();
     if (status)
     {
@@ -754,6 +747,7 @@ void FirewireDCAM::imageGrabTask()
 		setIntegerParam(ADStatus, ADStatusWaiting);
 		callParamCallbacks();
 		getDoubleParam((int)DC1394_FEATURE_FRAME_RATE - (int)DC1394_FEATURE_MIN, FDC_feat_val_abs, &fr);
+		if (fr<=0) fr=1;
 		err = this->captureDequeueTimeout(this->camera, &dc1394_frame, 5/fr);
 		if (err) {
 			/* Frame error */
@@ -917,7 +911,7 @@ asynStatus FirewireDCAM::setVideoMode(asynUser* pasynUser) {
 
 	// Check if we can get a valid videoMode
 	videoMode = this->lookupVideoMode(colorCoding);
-	if (videoMode == 0) return asynError;
+	if (((int)videoMode) == 0) return asynError;
 
 	// We check whether the new video mode is really the same as our current mode
 	// -in which case we just return success
@@ -927,8 +921,16 @@ asynStatus FirewireDCAM::setVideoMode(asynUser* pasynUser) {
 		if (dc1394_is_video_mode_scalable (rbVideoMode)) {
 			// Check the particular color coding in this mode.
 			status = PERR( pasynUser, dc1394_format7_get_color_coding(this->camera, videoMode, &rbColorCoding) );
-			if (rbColorCoding == colorCoding) return asynSuccess;
-		} else return asynSuccess;
+			if (rbColorCoding == colorCoding) {
+				setIntegerParam(FDC_videomode, (int)videoMode);
+				callParamCallbacks();
+				return asynSuccess;
+			}
+		} else {
+			setIntegerParam(FDC_videomode, (int)videoMode);
+			callParamCallbacks();
+			return asynSuccess;
+		}
 	}
 
 	// We've got this far, so we need to change video modes. First stop camera running
@@ -951,7 +953,7 @@ asynStatus FirewireDCAM::setVideoMode(asynUser* pasynUser) {
 	}
 
 	// Start the camera again if needed
-	if (acquiring) this->startCapture(pasynUser);
+	if (acquiring) status = this->startCapture(pasynUser);
 
 	// Update params
 	setIntegerParam(FDC_videomode, (int)videoMode);
@@ -1074,7 +1076,7 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
 	int ndims;
 	int dims[3];
     int arrayCallbacks, imageCounter, numImages, numImagesCounter, imageMode;
-    int colorMode, dataType, bayerFormat;
+    int colorMode, dataType;
     int xDim=0, yDim=1, binX, binY;
     double acquirePeriod;
 
@@ -1099,7 +1101,12 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
      * but it could be wrong for this frame if recently changed */
     getIntegerParam(ADBinX, &binX);
     getIntegerParam(ADBinY, &binY);
-
+/*
+    for (int i=0; i<8; i++) {
+    	printf("%d ", ((unsigned char *) dc1394_frame->image)[i]);
+    }
+    printf("dim: %d x %d cc: %d\n", dc1394_frame->size[0], dc1394_frame->size[1], dc1394_frame->color_coding);
+*/
     /* Report a new frame with the counters */
     imageCounter++;
     numImagesCounter++;
@@ -1113,7 +1120,10 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
     this->lookupColorMode(dc1394_frame->color_coding, &colorMode, &dataType);
     switch (colorMode) {
         case NDColorModeMono:
-        case NDColorModeBayer:
+    	case NDColorModeBayer:
+    		/* WARNING: Bayer mode doesn't seem to work in format 7 on the colour flea2.
+    		 * It isn't available in non-scalable modes either so can't test this code for bayer
+    		 */
             xDim = 0;
             yDim = 1;
             ndims = 2;
@@ -1150,7 +1160,6 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
 		return asynError;
     }
 
-	/* copy the data from the dc1394 frame into our raw driver buffer */
 	memcpy(this->pRaw->pData, dc1394_frame->image, dc1394_frame->image_bytes);
 
     /* fill in the data */
@@ -1218,14 +1227,16 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 {
 	asynStatus status = asynSuccess;
 	int function = pasynUser->reason;
-	int old_value, addr;
+	epicsInt32 old_value;
+	int addr;
 	pasynManager->getAddr(pasynUser, &addr);
+	dc1394error_t err;
 
     /* Set the parameter and readback in the parameter library.
      * This may be overwritten when we read back the
      * status at the end, but that's OK */
-	getIntegerParam(function, &old_value);
-    status = setIntegerParam(function, value);
+	getIntegerParam(addr, function, &old_value);
+    status = setIntegerParam(addr, function, value);
 
     if (function == ADAcquire) {
     	if (value != old_value) {
@@ -1238,37 +1249,30 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
     	}
     } else if ( function == NDDataType ||
     		    function == NDColorMode ) {
-    	this->setVideoMode(pasynUser);
-    } else if ( (function == ADImageMode) ||
-                (function == ADNumImages) ||
-                (function == ADAcquirePeriod)  ||
-                (function == ADNumImagesCounter)  ||
-                (function == ADTriggerMode) ||
-                (function == NDArrayCallbacks)) {
-		// Do nothing
+    	status = this->setVideoMode(pasynUser);
+    } else if ( function == ADBinX ||
+    		    function == ADBinY ) {
+    	if (value != 1) status = asynError;
+    } else if ( function == ADReverseX ||
+    		    function == ADReverseY ) {
+    	if (value != 0) status = asynError;
+    } else if ( function == ADTriggerMode ) {
+    	err=dc1394_external_trigger_set_source(this->camera, (dc1394trigger_source_t) (DC1394_TRIGGER_SOURCE_MIN + value));
+    	status = PERR( pasynUser, err );
     } else if ( (function == ADSizeX) ||
                 (function == ADSizeY) ||
                 (function == ADMinX)  ||
                 (function == ADMinY) ){
     	status = this->setRoi(pasynUser);
     } else if (function == FDC_feat_val) {
-		/* First check if the camera is set for manual control... */
-    	int tmpVal;
-		getIntegerParam(addr, FDC_feat_mode, &tmpVal);
-		/* if it is not set to 'manual' (0) then we do set it to manual */
-		if (tmpVal != 0) status = this->setFeatureMode(pasynUser, 0, NULL);
-		if (status != asynError) {
-			/* now send the feature value to the camera */
-			status = this->setFeatureValue(pasynUser, value, NULL);
-			if (status != asynError) {
-				/* update all feature values to check if any settings have changed */
-				status = (asynStatus) this->getAllFeatures();
-			}
-		}
+		status = this->setFeatureValue(pasynUser, addr, value, NULL);
     } else if (function == FDC_feat_mode) {
-		status = this->setFeatureMode(pasynUser, value, NULL);
+		status = this->setFeatureMode(pasynUser, addr, value, NULL);
     } else if (function == FDC_framerate) {
 		status = this->setFrameRate(pasynUser, value);
+    } else if (function < FIRST_FDC_PARAM) {
+		/* If this parameter belongs to a base class call its method */
+		status = ADDriver::writeInt32(pasynUser, value);
     } else { 
 		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s Function not implemented: %d; val=%d\n",
 					driverName, "writeInt32", function, value);
@@ -1277,7 +1281,7 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 
 	if (status) {
 		/* write the old value back */
-		setIntegerParam(function, old_value);
+		setIntegerParam(addr, function, old_value);
 	} else {
 		/* update all feature values to check if any settings have changed */
 		status = (asynStatus) this->getAllFeatures();
@@ -1297,30 +1301,49 @@ asynStatus FirewireDCAM::writeFloat64( asynUser *pasynUser, epicsFloat64 value)
 {
 	asynStatus status = asynSuccess;
 	int function = pasynUser->reason;
-	epicsFloat64 rbValue;
-	int addr, tmpVal;
+	epicsFloat64 old_value;
+	int addr;
 	pasynManager->getAddr(pasynUser, &addr);
 
+    /* Set the parameter and readback in the parameter library.
+     * This may be overwritten when we read back the
+     * status at the end, but that's OK */
+	getDoubleParam(addr, function, &old_value);
+    status = setDoubleParam(addr, function, value);
+
 	if (function == FDC_feat_val_abs) {
-		/* First check if the camera is set for manual control... */
-		getIntegerParam(addr, FDC_feat_mode, &tmpVal);
-		/* if it is not set to 'manual' (0) then we do set it to manual */
-		if (tmpVal != 0) status = this->setFeatureMode(pasynUser, 0, NULL);
-		if (status != asynError) {
-			status = this->setFeatureAbsValue(pasynUser, value, &rbValue);
-			if (status != asynError) {
-				/* update all feature values to check if any settings have changed */
-				status = (asynStatus) this->getAllFeatures();
-			}
+		status = this->setFeatureAbsValue(pasynUser, addr, value, NULL);
+	} else if (function == ADAcquireTime) {
+		addr = DC1394_FEATURE_SHUTTER - DC1394_FEATURE_MIN;
+		status = this->setFeatureAbsValue(pasynUser, addr, value, NULL);
+	} else if (function == ADAcquirePeriod) {
+		addr = DC1394_FEATURE_FRAME_RATE - DC1394_FEATURE_MIN;
+		if (value>0) {
+			status = this->setFeatureAbsValue(pasynUser, addr, 1/value, NULL);
+		} else {
+			status = asynError;
 		}
+	} else if (function == ADGain) {
+		addr = DC1394_FEATURE_GAIN - DC1394_FEATURE_MIN;
+		status = this->setFeatureAbsValue(pasynUser, addr, value, NULL);
+    } else if (function < FIRST_FDC_PARAM) {
+		/* If this parameter belongs to a base class call its method */
+		status = ADDriver::writeFloat64(pasynUser, value);
 	} else {
 		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s Function not implemented for function %d; val=%.4f\n",
 					"FirewireDCAM", "writeFloat64", function, value);
 		status = asynError;
 	}
 
-	if (status != asynError) status = setDoubleParam(addr, function, rbValue);
-	if (status != asynError) callParamCallbacks(addr, addr);
+	if (status) {
+		/* write the old value back */
+		setDoubleParam(addr, function, old_value);
+	} else {
+		/* update all feature values to check if any settings have changed */
+		status = (asynStatus) this->getAllFeatures();
+		/* Call the callback */
+		callParamCallbacks();
+	}
 	return status;
 }
 
@@ -1331,7 +1354,8 @@ asynStatus FirewireDCAM::writeFloat64( asynUser *pasynUser, epicsFloat64 value)
  * <li>Valid range of the asyn request address against feature index.
  * <li>Availability of the requested feature in the current camera.
  * </ol>
- * \param pasynUser
+ * \param pasynUser Asyn User to write messages to
+ * \param addr Address of the parameter to get
  * \param featInfo Pointer to a feature info structure pointer. The function
  *        will write a valid feature info struct into this pointer or NULL on error.
  * \param featureName The function will return a string in this parameter with a
@@ -1340,18 +1364,15 @@ asynStatus FirewireDCAM::writeFloat64( asynUser *pasynUser, epicsFloat64 value)
  *                     name. For debugging/printing purposes only.
  * \return asyn status
  */
-asynStatus FirewireDCAM::checkFeature(	asynUser *pasynUser, dc1394feature_info_t **featInfo,
+asynStatus FirewireDCAM::checkFeature(	asynUser *pasynUser, int addr, dc1394feature_info_t **featInfo,
 										char** featureName, const char* functionName)
 {
 	asynStatus status = asynSuccess;
 	dc1394feature_info_t *tmpFeatInfo;
-	int addr;
 	const char* localFunctionName = "checkFeature";
 
 	*featInfo = NULL;/* set the default return pointer to nothing... */
 	if (functionName == NULL) functionName = localFunctionName;
-
-	pasynManager->getAddr(pasynUser, &addr);
 
 	if (addr < 0 || addr >= DC1394_FEATURE_NUM)
 	{
@@ -1376,7 +1397,7 @@ asynStatus FirewireDCAM::checkFeature(	asynUser *pasynUser, dc1394feature_info_t
 	return status;
 }
 
-asynStatus FirewireDCAM::setFeatureMode(asynUser *pasynUser, epicsInt32 value, epicsInt32 *rbValue)
+asynStatus FirewireDCAM::setFeatureMode(asynUser *pasynUser, int addr, epicsInt32 value, epicsInt32 *rbValue)
 {
 	asynStatus status = asynSuccess;
 	dc1394feature_info_t *featInfo;
@@ -1388,7 +1409,7 @@ asynStatus FirewireDCAM::setFeatureMode(asynUser *pasynUser, epicsInt32 value, e
 	unsigned int i;
 
 	/* First check if the feature is valid for this camera */
-	status = this->checkFeature(pasynUser, &featInfo, &featureName, functionName);
+	status = this->checkFeature(pasynUser, addr, &featInfo, &featureName, functionName);
 	if (status == asynError) return status;
 
 	/* translate the PV value into a dc1394 mode enum... */
@@ -1429,7 +1450,7 @@ asynStatus FirewireDCAM::setFeatureMode(asynUser *pasynUser, epicsInt32 value, e
 }
 
 
-asynStatus FirewireDCAM::setFeatureValue(asynUser *pasynUser, epicsInt32 value, epicsInt32 *rbValue)
+asynStatus FirewireDCAM::setFeatureValue(asynUser *pasynUser, int addr, epicsInt32 value, epicsInt32 *rbValue)
 {
 	asynStatus status = asynSuccess;
 	dc1394feature_info_t *featInfo;
@@ -1437,9 +1458,10 @@ asynStatus FirewireDCAM::setFeatureValue(asynUser *pasynUser, epicsInt32 value, 
 	epicsUInt32 min, max;
 	const char *functionName = "setFeatureValue";
 	char *featureName;
+	int tmpVal;
 
 	/* First check if the feature is valid for this camera */
-	status = this->checkFeature(pasynUser, &featInfo, (char**)&featureName, functionName);
+	status = this->checkFeature(pasynUser, addr, &featInfo, (char**)&featureName, functionName);
 	if (status == asynError) return status;
 
 	/* Check the value is within the expected boundaries */
@@ -1453,11 +1475,23 @@ asynStatus FirewireDCAM::setFeatureValue(asynUser *pasynUser, epicsInt32 value, 
 		return asynError;
 	}
 
+	/* Check if the camera is set for manual control... */
+	getIntegerParam(addr, FDC_feat_mode, &tmpVal);
+	/* if it is not set to 'manual' (0) then we do set it to manual */
+	if (tmpVal != 0) status = this->setFeatureMode(pasynUser, addr, 0, NULL);
+	if(status == asynError) return status;
+
+	/* Set the feature for non-absolute control in the camera */
+	err = dc1394_feature_set_absolute_control(this->camera, featInfo->id, DC1394_OFF);
+	status = PERR(NULL, err);
+	if(status == asynError) return status;
+
 	/* Set the feature value in the camera */
-		dc1394_feature_set_absolute_control(this->camera, featInfo->id, DC1394_OFF);
 	err = dc1394_feature_set_value (this->camera, featInfo->id, (epicsUInt32)value);	
 	status = PERR(NULL, err);
 	if(status == asynError) return status;
+
+
 
 	/* if the caller is not interested in getting the readback, we won't collect it! */
 	if (rbValue != NULL)
@@ -1477,7 +1511,7 @@ asynStatus FirewireDCAM::setFeatureValue(asynUser *pasynUser, epicsInt32 value, 
 }
 
 
-asynStatus FirewireDCAM::setFeatureAbsValue(asynUser *pasynUser, epicsFloat64 value, epicsFloat64 *rbValue)
+asynStatus FirewireDCAM::setFeatureAbsValue(asynUser *pasynUser, int addr, epicsFloat64 value, epicsFloat64 *rbValue)
 {
 	asynStatus status = asynSuccess;
 	dc1394feature_info_t *featInfo;
@@ -1486,9 +1520,10 @@ asynStatus FirewireDCAM::setFeatureAbsValue(asynUser *pasynUser, epicsFloat64 va
 	float min, max;
 	const char *functionName = "setFeatureAbsValue";
 	char *featureName;
+	int tmpVal;
 
 	/* First check if the feature is valid for this camera */
-	status = this->checkFeature(pasynUser, &featInfo, (char**)&featureName, functionName);
+	status = this->checkFeature(pasynUser, addr, &featInfo, (char**)&featureName, functionName);
 	if (status == asynError) return status;
 
 	/* Check if the specific feature supports absolute values */
@@ -1513,8 +1548,18 @@ asynStatus FirewireDCAM::setFeatureAbsValue(asynUser *pasynUser, epicsFloat64 va
 		return asynError;
 	}
 
+	/* Check if the camera is set for manual control... */
+	getIntegerParam(addr, FDC_feat_mode, &tmpVal);
+	/* if it is not set to 'manual' (0) then we do set it to manual */
+	if (tmpVal != 0) status = this->setFeatureMode(pasynUser, addr, 0, NULL);
+	if(status == asynError) return status;
+
+	/* Set the feature for non-absolute control in the camera */
+	err = dc1394_feature_set_absolute_control(this->camera, featInfo->id, DC1394_ON);
+	status = PERR(NULL, err);
+	if(status == asynError) return status;
+
 	/* Finally set the feature value in the camera */
-	dc1394_feature_set_absolute_control(this->camera, featInfo->id, DC1394_ON);
 	err = dc1394_feature_set_absolute_value (this->camera, featInfo->id, (float)value);
 	status = PERR(NULL, err);
 	if(status == asynError) return status;
@@ -1557,6 +1602,12 @@ asynStatus FirewireDCAM::setFrameRate( asynUser *pasynUser, epicsInt32 iframerat
 	if (iframerate == 0) return asynSuccess;
 
 	PERR( pasynUser, dc1394_video_get_mode(this->camera, &videoMode) );
+	if (dc1394_is_video_mode_scalable (videoMode)) {
+		/* This is a format 7 video mode, can't set frame rate */
+		asynPrint(pasynUser, ASYN_TRACE_FLOW, "FDC_framerate: This is a format 7 mode, doing nothing\n");
+		return asynSuccess;
+	}
+
 	getIntegerParam(ADAcquire, &wasAcquiring);
 	if (wasAcquiring)
 	{
@@ -1720,12 +1771,17 @@ int FirewireDCAM::getAllFeatures()
 	addr = DC1394_FEATURE_SHUTTER - DC1394_FEATURE_MIN;
 	getDoubleParam(addr, FDC_feat_val_abs, &dtmp);
 	status |= setDoubleParam(ADAcquireTime, dtmp);
-	getDoubleParam(addr, FDC_feat_val_abs_max, &dtmp);
-	status |= setDoubleParam(ADAcquirePeriod, dtmp);
+
+	addr = DC1394_FEATURE_FRAME_RATE - DC1394_FEATURE_MIN;
+	getDoubleParam(addr, FDC_feat_val_abs, &dtmp);
+	if (dtmp<=0) dtmp=1;
+	status |= setDoubleParam(ADAcquirePeriod, 1/dtmp);
 
 	addr = DC1394_FEATURE_GAIN - DC1394_FEATURE_MIN;
 	getDoubleParam(addr, FDC_feat_val_abs, &dtmp);
 	status |= setDoubleParam(ADGain, dtmp);
+
+	callParamCallbacks();
 
 	return status;
 }

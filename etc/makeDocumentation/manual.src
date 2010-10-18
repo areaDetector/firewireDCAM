@@ -147,7 +147,7 @@ Note as this is a plug-in module to a larger framework, it is not considered an 
 The following sections describes the templates and configuration functions this plug-in module provides and how to use them.
 
 \section db_template Database Template
-One database template is supplied to enable control and read back of all camera features. See \ref firewireDCAM.db for details regarding macros and what features and records are available.
+One database template is supplied to enable control and read back of all camera features. See \ref firewireDCAM.template for details regarding macros and what features and records are available.
 
 \section startup_script Startup Script
 A couple of startup scripts are supplied in the example/iocBoot/iocexample/ directory. These startup scripts have a number of macros that will need to be substituted before running them. The EPICS build system at DLS will automate this and place the substituted startup files in example/bin/linux-x86/stexample.boot but other sites may possibly not have the same build system rules...

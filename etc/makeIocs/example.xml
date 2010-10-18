@@ -2,11 +2,12 @@
 <components arch="linux-x86">
 	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01007139d0" P="TESTFWDCAM1" PORT="CAM1.CAM" R=":CAM:" TIMEOUT="1"/>
 	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01007139ba" P="TESTFWDCAM2" PORT="CAM2.CAM" R=":CAM:" TIMEOUT="1"/>
-	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01008118c9" P="TESTFWDCAM3" PORT="CAM3.CAM" R=":CAM:" TIMEOUT="1"/>
+	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01008118c9" P="TESTFWDCAM3" PORT="CAM3.CAM" R=":CAM:" TIMEOUT="1" disableScalable="1"/>
 	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00b09d01007139c0" P="TESTFWDCAM4" PORT="CAM4.CAM" R=":CAM:" TIMEOUT="1"/>
+	<areaDetector.NDColorConvert ADDR="0" Enabled="1" NDARRAY_ADDR="0" NDARRAY_PORT="CAM3.CAM" P="TESTFWDCAM3" PORT="CAM3.CC" R=":CC:" TIMEOUT="1"/>
 	<ffmpegServer.ffmpegServer ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM1.CAM" P="TESTFWDCAM1" PORT="CAM1.MJPG" R=":MJPG:" TIMEOUT="1"/>
 	<ffmpegServer.ffmpegServer ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM2.CAM" P="TESTFWDCAM2" PORT="CAM2.MJPG" R=":MJPG:" TIMEOUT="1"/>
-	<ffmpegServer.ffmpegServer ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM3.CAM" P="TESTFWDCAM3" PORT="CAM3.MJPG" R=":MJPG:" TIMEOUT="1"/>
+	<ffmpegServer.ffmpegServer ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM3.CC" P="TESTFWDCAM3" PORT="CAM3.MJPG" R=":MJPG:" TIMEOUT="1"/>
 	<ffmpegServer.ffmpegServer ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM4.CAM" P="TESTFWDCAM4" PORT="CAM4.MJPG" R=":MJPG:" TIMEOUT="1"/>
-	<EPICS_BASE.StartupCommand command="asynSetTraceMask(&quot;CAM1.CAM&quot;,0,0x11)" post_init="True"/>
+	<!--<EPICS_BASE.StartupCommand command="asynSetTraceMask(&quot;CAM1.CAM&quot;,0,0x11)" post_init="True"/>-->
 </components>
