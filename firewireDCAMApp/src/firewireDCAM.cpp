@@ -1907,7 +1907,7 @@ asynStatus FirewireDCAM::stopCapture(asynUser *pasynUser) {
 		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] Stopping transmission failed...\n",
 					driverName, functionName, this->portName);
 	}
-	setIntegerParam(ADStatus, ADStatusAborting);
+	setIntegerParam(ADStatus, ADStatusIdle);
 	return status;
 }
 
