@@ -10,9 +10,9 @@
 # # can be controlled and read out: 
 # #
 # # This templates provides control and read back of all camera 'features' provided through
-# # the IIDC DCAM protocol. The PV names are put together using the $(P) and $(CAM) macros,
+# # the IIDC DCAM protocol. The PV names are put together using the $(P) and $(R) macros,
 # # the feature name [brackets in the list below] and the feature parameters. For instance the PV
-# # name for the Gain readback would look like: $(P)$(CAM):GAIN_RBV 
+# # name for the Gain readback would look like: $(P)$(R):GAIN_RBV 
 # #
 # # \section feature_list Feature List
 # # See below for the full list of all features but keep in mind
@@ -40,7 +40,7 @@
 # # \li Capture Size [CAPTSIZE]
 # # \li Capture Quality [QUALITY]
 # #
-# # \note *: Frame rate is not recommended to set using the feature interface. The $(P)$(CAM):FR and $(P)$(CAM):FR_RBV
+# # \note *: Frame rate is not recommended to set using the feature interface. The $(P)$(R):FR and $(P)$(R):FR_RBV
 # # records provide more convenient mbbo/mbbi enum interface to available framerates.
 # # 
 # # \section feature_parameters Feature Parameters
