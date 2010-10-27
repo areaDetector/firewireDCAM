@@ -10,9 +10,9 @@
 # # can be controlled and read out: 
 # #
 # # This templates provides control and read back of all camera 'features' provided through
-# # the IIDC DCAM protocol. The PV names are put together using the $(P) and $(R) macros,
+# # the IIDC DCAM protocol. The PV names are put together using the @c P and @c R macros,
 # # the feature name [brackets in the list below] and the feature parameters. For instance the PV
-# # name for the Gain readback would look like: $(P)$(R):GAIN_RBV 
+# # name for the Gain readback would look like: @verbatim $(P)$(R):GAIN_RBV @endverbatim
 # #
 # # \section feature_list Feature List
 # # See below for the full list of all features but keep in mind
@@ -40,7 +40,7 @@
 # # \li Capture Size [CAPTSIZE]
 # # \li Capture Quality [QUALITY]
 # #
-# # \note *: Frame rate is not recommended to set using the feature interface. The $(P)$(R):FR and $(P)$(R):FR_RBV
+# # \note *: Frame rate is not recommended to set using the feature interface. The @c :FR and @c :FR_RBV
 # # records provide more convenient mbbo/mbbi enum interface to available framerates.
 # # 
 # # \section feature_parameters Feature Parameters
@@ -55,7 +55,7 @@
 # # \li Read back minimum integer boundary (ai) [_MIN]
 # # \li Read whether the camera supports 'absolute' feature control. I.e. floating point read and/or write control
 # #     of the specific feature. "not available" or "available" (bi) [_ABS_AVL]
-# # \li Set the features absolute (floating point) value (a0) [_ABS]**
+# # \li Set the features absolute (floating point) value (ao) [_ABS]**
 # # \li Read back the current absolute value of the given feature (ai) [_ABS_RBV]
 # # \li Read the current absolute maximum value (ai) [_ABS_MAX]
 # # \li Read the current absolute minimum value (ai) [_ABS_MIN]
@@ -70,12 +70,16 @@
 # % macro, R, Device Suffix
 # % macro, PORT, Asyn Port name
 # % macro, FR, Max framerate enum
-# % macro, gda_name, Name to expose to GDA
+# % macro, DUMMY, Dummy empty macro to satisfy vdct
+# #
+# All tags starting with gdatag are DLS specific for GDA
+# % gdatag, template, firewireDCAM, $(PORT)_firewireDCAM, $(PORT) firewireDCAM class instance
 # #
 # This associates the template with an edm screen
 # % gui, $(PORT), edmtab, firewireDCAM.edl, P=$(P),R=$(R)
-# # Change the framerate when the camera is not in the ROI/format7 mode
-# % gdatag, mbbinary, rw, $(gda_name=$(PORT)), FR, Set frame rate [[firewireDCAM]]
+# #
+# # Change the max framerate when the camera is not in the ROI/format7 mode
+# % gdatag, mbbinary, rw, $(PORT)_firewireDCAM, FR, Set frame rate
 record(mbbo, "$(P)$(R)FR") {
   field(SCAN, "Passive")
   field(DTYP, "asynInt32")
@@ -98,8 +102,8 @@ record(mbbo, "$(P)$(R)FR") {
   field(PINI, "YES")
 }
 
-## Read back the framerate setting when not in ROI/format7 mode.
-# % gdatag, mbbinary, ro, $(gda_name=$(PORT)), FR_RBV, Readback for frame rate [[firewireDCAM]]
+## Read back the max framerate setting when not in ROI/format7 mode.
+# % gdatag, mbbinary, ro, $(PORT)_firewireDCAM, FR_RBV, Readback for frame rate
 record(mbbi, "$(P)$(R)FR_RBV") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
@@ -120,38 +124,40 @@ record(mbbi, "$(P)$(R)FR_RBV") {
   field(SXVL, "6")
 }
 
-# % gdatag, pv, rw, $(gda_name=$(PORT)), VIDEOMODE, Set VIDEOMODE [[firewireDCAM]]
-record(ao, "$(P)$(R)VIDEOMODE") {
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, VIDEOMODE
+record(ai, "$(P)$(R)VIDEOMODE") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
-  field(OUT, "@asyn($(PORT) 0)FDC_VIDEOMODE")
+  field(DESC, "Read the video mode number")  
+  field(INP, "@asyn($(PORT) 0)FDC_VIDEOMODE")
 }
 
-# % gdatag, pv, rw, $(gda_name=$(PORT)), BANDWIDTH, Read the bandwidth percentage [[firewireDCAM]]
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, BANDWIDTH
 record(ai, "$(P)$(R)BANDWIDTH") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynFloat64")
+  field(DESC, "Read the bandwidth percentage")    
   field(INP, "@asyn($(PORT) 0)FDC_BANDWIDTH")
   field(EGU, "%")
 }
 
-# Only 2 data types are supported, unsigned 8 and 16 bit integers
+# # Only 2 data types are supported, unsigned 8 and 16 bit integers
 record(mbbo, "$(P)$(R)DataType") {
   field(ZRST, "UInt8")
   field(ZRVL, "1")
   field(ONST, "UInt16")
   field(ONVL, "3")
-  field(TWST, " ")
+  field(TWST, "$(DUMMY=)")
   field(TWVL, "0")
-  field(THST, " ")
+  field(THST, "$(DUMMY=)")
   field(THVL, "0")
-  field(FRST, " ")
+  field(FRST, "$(DUMMY=)")
   field(FRVL, "0")
-  field(FVST, " ")
+  field(FVST, "$(DUMMY=)")
   field(FVVL, "0")
-  field(SXST, " ")
+  field(SXST, "$(DUMMY=)")
   field(SXVL, "0")
-  field(SVST, " ")
+  field(SVST, "$(DUMMY=)")
   field(SVVL, "0")
 }
 
@@ -160,22 +166,22 @@ record(mbbi, "$(P)$(R)DataType_RBV") {
   field(ZRVL, "1")
   field(ONST, "UInt16")
   field(ONVL, "3")
-  field(TWST, " ")
+  field(TWST, "$(DUMMY=)")
   field(TWVL, "0")
-  field(THST, " ")
+  field(THST, "$(DUMMY=)")
   field(THVL, "0")
-  field(FRST, " ")
+  field(FRST, "$(DUMMY=)")
   field(FRVL, "0")
-  field(FVST, " ")
+  field(FVST, "$(DUMMY=)")
   field(FVVL, "0")
-  field(SXST, " ")
+  field(SXST, "$(DUMMY=)")
   field(SXVL, "0")
-  field(SVST, " ")
+  field(SVST, "$(DUMMY=)")
   field(SVVL, "0")
 }
 
-# Redefine the color mode choices from ADBase.template to only have those that the aravisCamera
-# driver supports.  Keep the same values (xxVL), but change the menu numbers.
+# # Redefine the color mode choices from ADBase.template to only have those that the aravisCamera
+# # driver supports.  Keep the same values (xxVL), but change the menu numbers.
 record(mbbo, "$(P)$(R)ColorMode") {
   field(PINI, "YES")
   field(DTYP, "asynInt32")
@@ -192,13 +198,12 @@ record(mbbo, "$(P)$(R)ColorMode") {
   field(FRVL, "6")
   field(FVST, "YUV421")
   field(FVVL, "7")
-  field(SXST, " ")
+  field(SXST, "$(DUMMY=)")
   field(SXVL, "0")
-  field(SVST, " ")
+  field(SVST, "$(DUMMY=)")
   field(SVVL, "0")
 }
 
-# % gdatag, mbbinary, ro, $(gda_name=$(PORT)), ColorMode_RBV, Readback for ColorMode [[ADBase]]
 record(mbbi, "$(P)$(R)ColorMode_RBV") {
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT),0)COLOR_MODE")
@@ -214,9 +219,9 @@ record(mbbi, "$(P)$(R)ColorMode_RBV") {
   field(FRVL, "6")
   field(FVST, "YUV421")
   field(FVVL, "7")
-  field(SXST, " ")
+  field(SXST, "$(DUMMY=)")
   field(SXVL, "0")
-  field(SVST, " ")
+  field(SVST, "$(DUMMY=)")
   field(SVVL, "0")
   field(SCAN, "I/O Intr")
 }

@@ -12,14 +12,14 @@ template() {
 
 # ---------------- Feature $(FEAT) control ----------------
 # Set the $(FEAT) value (int32)
-# % gdatag, pv, rw, $(gda_name=$(PORT)), $(FEAT), Set $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, rw, $(PORT)_firewireDCAM, $(FEAT), Set $(FEAT)
 record(ao, "$(P)$(R)$(FEAT)") {
   field(DTYP, "asynInt32")
   field(OUT, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL")
 }
 
 # Read the $(FEAT) value (int32)
-# % gdatag, pv, ro, $(gda_name=$(PORT)), $(FEAT)_RBV, Readback for $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, $(FEAT)_RBV, Readback for $(FEAT)
 record(ai, "$(P)$(R)$(FEAT)_RBV") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
@@ -27,7 +27,7 @@ record(ai, "$(P)$(R)$(FEAT)_RBV") {
 }
 
 ## Set the $(FEAT) control mode (manual = user configured /auto = camera sets values)
-# % gdatag, binary, rw, $(gda_name=$(PORT)), $(FEAT)_CTRL, Set $(FEAT) Control Manual or Auto (firewireDCAM_feature.vdb)
+# % gdatag, binary, rw, $(PORT)_firewireDCAM, $(FEAT)_CTRL, Set $(FEAT) Control Manual or Auto
 record(bo, "$(P)$(R)$(FEAT)_CTRL") {
   field(DTYP, "asynInt32")
   field(OUT, "@asyn($(PORT) $(NUM))FDC_FEAT_MODE")
@@ -36,7 +36,7 @@ record(bo, "$(P)$(R)$(FEAT)_CTRL") {
 }
 
 ## Read back the $(FEAT) control mode
-# % gdatag, binary, ro, $(gda_name=$(PORT)), $(FEAT)_CTRL_RBV, Readback for $(FEAT) Control Manual or Auto (firewireDCAM_feature.vdb)
+# % gdatag, binary, ro, $(PORT)_firewireDCAM, $(FEAT)_CTRL_RBV, Readback for $(FEAT) Control Manual or Auto
 record(bi, "$(P)$(R)$(FEAT)_CTRL_RBV") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
@@ -46,7 +46,7 @@ record(bi, "$(P)$(R)$(FEAT)_CTRL_RBV") {
 }
 
 ## Read whether the camera supports this feature
-# % gdatag, binary, rw, $(gda_name=$(PORT)), $(FEAT)_AVL, Availability of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, binary, ro, $(PORT)_firewireDCAM, $(FEAT)_AVL, Availability of $(FEAT)
 record(bi, "$(P)$(R)$(FEAT)_AVL") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
@@ -56,14 +56,14 @@ record(bi, "$(P)$(R)$(FEAT)_AVL") {
 }
 
 # Read $(FEAT) boundaries
-# % gdatag, pv, rw, $(gda_name=$(PORT)), $(FEAT)_MIN, Minimum value of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, $(FEAT)_MIN, Minimum value of $(FEAT)
 record(ai, "$(P)$(R)$(FEAT)_MIN") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
   field(INP, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_MIN")
 }
 
-# % gdatag, pv, rw, $(gda_name=$(PORT)), $(FEAT)_MAX, Maximum value of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, $(FEAT)_MAX, Maximum value of $(FEAT)
 record(ai, "$(P)$(R)$(FEAT)_MAX") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
@@ -71,7 +71,7 @@ record(ai, "$(P)$(R)$(FEAT)_MAX") {
 }
 
 ## Read whether the camera supports absolute (floating point) control of this feature
-# % gdatag, binary, rw, $(gda_name=$(PORT)), $(FEAT)_ABS_AVL, Availability of absolute control of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, binary, ro, $(PORT)_firewireDCAM, $(FEAT)_ABS_AVL, Availability of absolute control of $(FEAT)
 record(bi, "$(P)$(R)$(FEAT)_ABS_AVL") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynInt32")
@@ -81,7 +81,7 @@ record(bi, "$(P)$(R)$(FEAT)_ABS_AVL") {
 }
 
 # Set the feature absolute value (floating point)
-# % gdatag, pv, rw, $(gda_name=$(PORT)), $(FEAT)_ABS, Set absolute value of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, rw, $(PORT)_firewireDCAM, $(FEAT)_ABS, Set absolute value of $(FEAT)
 record(ao, "$(P)$(R)$(FEAT)_ABS") {
   field(DTYP, "asynFloat64")
   field(OUT, "@asyn($(PORT) $(NUM))FDC_FEAT_VAL_ABS")
@@ -89,7 +89,7 @@ record(ao, "$(P)$(R)$(FEAT)_ABS") {
 }
 
 # Read the feature absolute value
-# % gdatag, pv, ro, $(gda_name=$(PORT)), $(FEAT)_ABS_RBV, Readback absolute value of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, $(FEAT)_ABS_RBV, Readback absolute value of $(FEAT)
 record(ai, "$(P)$(R)$(FEAT)_ABS_RBV") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynFloat64")
@@ -98,7 +98,7 @@ record(ai, "$(P)$(R)$(FEAT)_ABS_RBV") {
 }
 
 # Read the feature absolute value max boundary
-# % gdatag, pv, rw, $(gda_name=$(PORT)), $(FEAT)_ABS_MAX, Maximum absolute value of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, $(FEAT)_ABS_MAX, Maximum absolute value of $(FEAT)
 record(ai, "$(P)$(R)$(FEAT)_ABS_MAX") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynFloat64")
@@ -107,7 +107,7 @@ record(ai, "$(P)$(R)$(FEAT)_ABS_MAX") {
 }
 
 # Read the feature absolute value min boundary
-# % gdatag, pv, rw, $(gda_name=$(PORT)), $(FEAT)_ABS_MIN, Minimum absolute value of $(FEAT) (firewireDCAM_feature.vdb)
+# % gdatag, pv, ro, $(PORT)_firewireDCAM, $(FEAT)_ABS_MIN, Minimum absolute value of $(FEAT)
 record(ai, "$(P)$(R)$(FEAT)_ABS_MIN") {
   field(SCAN, "I/O Intr")
   field(DTYP, "asynFloat64")
@@ -118,14 +118,14 @@ record(ai, "$(P)$(R)$(FEAT)_ABS_MIN") {
 #! Further lines contain data used by VisualDCT
 #! View(0,0,1.0)
 #! Record("$(P)$(R)$(FEAT)",20,16,0,0,"$(P)$(R)$(FEAT)")
-#! Record("$(P)$(R)$(FEAT)_RBV",260,28,0,0,"$(P)$(R)$(FEAT)_RBV")
+#! Record("$(P)$(R)$(FEAT)_RBV",260,22,0,0,"$(P)$(R)$(FEAT)_RBV")
 #! Record("$(P)$(R)$(FEAT)_CTRL",500,28,0,0,"$(P)$(R)$(FEAT)_CTRL")
-#! Record("$(P)$(R)$(FEAT)_CTRL_RBV",740,20,0,0,"$(P)$(R)$(FEAT)_CTRL_RBV")
-#! Record("$(P)$(R)$(FEAT)_AVL",980,20,0,0,"$(P)$(R)$(FEAT)_AVL")
-#! Record("$(P)$(R)$(FEAT)_MIN",1220,28,0,0,"$(P)$(R)$(FEAT)_MIN")
-#! Record("$(P)$(R)$(FEAT)_MAX",1460,28,0,0,"$(P)$(R)$(FEAT)_MAX")
-#! Record("$(P)$(R)$(FEAT)_ABS_AVL",1700,20,0,0,"$(P)$(R)$(FEAT)_ABS_AVL")
+#! Record("$(P)$(R)$(FEAT)_CTRL_RBV",740,14,0,0,"$(P)$(R)$(FEAT)_CTRL_RBV")
+#! Record("$(P)$(R)$(FEAT)_AVL",980,14,0,0,"$(P)$(R)$(FEAT)_AVL")
+#! Record("$(P)$(R)$(FEAT)_MIN",1220,22,0,0,"$(P)$(R)$(FEAT)_MIN")
+#! Record("$(P)$(R)$(FEAT)_MAX",1460,22,0,0,"$(P)$(R)$(FEAT)_MAX")
+#! Record("$(P)$(R)$(FEAT)_ABS_AVL",1700,14,0,0,"$(P)$(R)$(FEAT)_ABS_AVL")
 #! Record("$(P)$(R)$(FEAT)_ABS",1940,22,0,0,"$(P)$(R)$(FEAT)_ABS")
-#! Record("$(P)$(R)$(FEAT)_ABS_RBV",2180,14,0,0,"$(P)$(R)$(FEAT)_ABS_RBV")
-#! Record("$(P)$(R)$(FEAT)_ABS_MAX",2420,14,0,0,"$(P)$(R)$(FEAT)_ABS_MAX")
-#! Record("$(P)$(R)$(FEAT)_ABS_MIN",2660,14,0,0,"$(P)$(R)$(FEAT)_ABS_MIN")
+#! Record("$(P)$(R)$(FEAT)_ABS_RBV",2180,8,0,0,"$(P)$(R)$(FEAT)_ABS_RBV")
+#! Record("$(P)$(R)$(FEAT)_ABS_MAX",2420,8,0,0,"$(P)$(R)$(FEAT)_ABS_MAX")
+#! Record("$(P)$(R)$(FEAT)_ABS_MIN",2660,8,0,0,"$(P)$(R)$(FEAT)_ABS_MIN")

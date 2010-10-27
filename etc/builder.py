@@ -9,15 +9,12 @@ class _firewireDCAM(AutoSubstitution):
 
 class firewireDCAM(_ADBase):
     '''Creates a firewireDCAM camera areaDetector driver'''
-    gda_template = "firewireDCAM"
+    _SpecificTemplate = _firewireDCAM
     Dependencies = (Dc1394,)    
     def __init__(self, ID, SPEED = 800, disableScalable = 0, BUFFERS = 50, MEMORY = -1, **args):
         # Init the superclass
         self.__super.__init__(**args)
-        # Init the firewireDCAM class
-        self.template = _firewireDCAM(**filter_dict(args, _firewireDCAM.ArgInfo.Names()))
         # Store the args
-        self.__dict__.update(self.template.args)
         self.__dict__.update(locals())
 
     # __init__ arguments
