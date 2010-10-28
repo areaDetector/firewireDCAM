@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 /* EPICS includes */
 #include <epicsString.h>
@@ -43,6 +44,7 @@
 #include <epicsThread.h>
 #include <epicsEvent.h>
 #include <epicsMutex.h>
+#include <epicsEndian.h>
 
 /* Dependency support modules includes:
  * asyn, areaDetector, dc1394 */
@@ -816,9 +818,7 @@ static const struct pix_lookup pix_lookup[] = {
     { DC1394_COLOR_CODING_YUV422,  NDColorModeYUV422, NDUInt8  },
     { DC1394_COLOR_CODING_YUV444,  NDColorModeYUV444, NDUInt8  },
     { DC1394_COLOR_CODING_MONO16,  NDColorModeMono,   NDUInt16 },
-    { DC1394_COLOR_CODING_MONO16S, NDColorModeMono,   NDInt16  },
     { DC1394_COLOR_CODING_RGB16,   NDColorModeRGB1,   NDUInt16 },
-    { DC1394_COLOR_CODING_RGB16S,  NDColorModeRGB1,   NDInt16  },
     { DC1394_COLOR_CODING_RAW16,   NDColorModeBayer,  NDUInt16 },
 };
 
@@ -975,7 +975,12 @@ asynStatus FirewireDCAM::setVideoMode(asynUser* pasynUser) {
 	}
 
 	// Start the camera again if needed
-	if (acquiring) status = this->startCapture(pasynUser);
+	if (acquiring) {
+		// Camera doesn't seem to take color coding settings in format 7 mode until we set the ROI
+		if (dc1394_is_video_mode_scalable (videoMode))
+			status = this->setRoi(pasynUser);
+		status = this->startCapture(pasynUser);
+	}
 
 	// Update params
 	setIntegerParam(FDC_videomode, (int)videoMode);
@@ -1098,7 +1103,7 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
 	int ndims;
 	int dims[3];
     int arrayCallbacks, imageCounter, numImages, numImagesCounter, imageMode;
-    int colorMode, dataType;
+    int colorMode, dataType, bayerFormat;
     int xDim=0, yDim=1, binX, binY;
     double acquirePeriod;
 
@@ -1123,12 +1128,14 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
      * but it could be wrong for this frame if recently changed */
     getIntegerParam(ADBinX, &binX);
     getIntegerParam(ADBinY, &binY);
+
 /*
     for (int i=0; i<8; i++) {
     	printf("%d ", ((unsigned char *) dc1394_frame->image)[i]);
     }
-    printf("dim: %d x %d cc: %d\n", dc1394_frame->size[0], dc1394_frame->size[1], dc1394_frame->color_coding);
+    printf("dim: %d x %d (%d) cc: %d\n", dc1394_frame->size[0], dc1394_frame->size[1], dc1394_frame->image_bytes, dc1394_frame->color_coding);
 */
+
     /* Report a new frame with the counters */
     imageCounter++;
     numImagesCounter++;
@@ -1143,9 +1150,6 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
     switch (colorMode) {
         case NDColorModeMono:
     	case NDColorModeBayer:
-    		/* WARNING: Bayer mode doesn't seem to work in format 7 on the colour flea2.
-    		 * It isn't available in non-scalable modes either so can't test this code for bayer
-    		 */
             xDim = 0;
             yDim = 1;
             ndims = 2;
@@ -1182,10 +1186,17 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
 		return asynError;
     }
 
-	memcpy(this->pRaw->pData, dc1394_frame->image, dc1394_frame->image_bytes);
+	/* The Firewire byte order is big-endian.  If this is 16-bit data and we are on a little-endian
+	 * machine we need to swap bytes */
+	if ((dataType == NDUInt8) || (EPICS_BYTE_ORDER == EPICS_ENDIAN_BIG)) {
+		memcpy(this->pRaw->pData, dc1394_frame->image, dc1394_frame->image_bytes);
+	} else {
+		swab((char *)dc1394_frame->image, (char *)this->pRaw->pData, dc1394_frame->image_bytes);
+	}
 
     /* fill in the data */
-    //this->pRaw->pAttributeList->add("BayerPattern", "Bayer Pattern", NDAttrInt32, &bayerFormat);
+	bayerFormat = dc1394_frame->color_filter - DC1394_COLOR_FILTER_MIN;
+    this->pRaw->pAttributeList->add("BayerPattern", "Bayer Pattern", NDAttrInt32, &bayerFormat);
     this->pRaw->pAttributeList->add("ColorMode", "Color Mode", NDAttrInt32, &colorMode);
     this->pRaw->dataType = (NDDataType_t) dataType;
     this->pRaw->dims[0].size    = 3;
