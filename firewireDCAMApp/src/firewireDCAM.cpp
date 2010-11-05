@@ -60,7 +60,7 @@
 /** Convenience macro to be used inside the firewireDCAM class. */
 #define PERR(pasynUser, errCode) this->err(pasynUser, errCode, __LINE__)
 /** Number of image buffers the dc1394 library will use internally */
-#define FDC_DC1394_NUM_BUFFERS 5
+#define FDC_DC1394_NUM_BUFFERS 15
 
 /** Only used for debugging/error messages to identify where the message comes from*/
 static const char *driverName = "FirewireDCAM";
@@ -121,6 +121,7 @@ public:
     int disableScalable;
     int busSpeed;
     unsigned long long camguid;
+    epicsUInt32 latch_frames_behind;
 
 protected:
     int FDC_feat_val;                       /** Feature value (int32 read/write) addr: 0-17 */
@@ -459,6 +460,7 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 	dc1394error_t err;
 	this->disableScalable = disableScalable;
 	this->busSpeed = speed;
+    this->latch_frames_behind = 0;
 
     createParam(FDC_feat_valString,             asynParamInt32,   &FDC_feat_val);
     createParam(FDC_feat_val_maxString,         asynParamInt32,   &FDC_feat_val_max);
@@ -674,6 +676,7 @@ dc1394error_t FirewireDCAM::captureDequeueTimeout(dc1394camera_t *camera, dc1394
 	dc1394error_t err = DC1394_SUCCESS;
 	dc1394video_frame_t *fptr;
 	epicsFloat64 dt = 0.0;
+	epicsUInt32 pollcount = 0;
 	const char* functionName = "captureDequeueTimeout";
 	epicsTimeGetCurrent(&start);
 
@@ -681,31 +684,43 @@ dc1394error_t FirewireDCAM::captureDequeueTimeout(dc1394camera_t *camera, dc1394
 	do
 	{
 		err = dc1394_capture_dequeue(camera, DC1394_CAPTURE_POLICY_POLL, &fptr);
+		//err = dc1394_capture_dequeue(camera, DC1394_CAPTURE_POLICY_WAIT, &fptr);
 		PERR(this->pasynUserSelf,err);
 		epicsTimeGetCurrent(&now);
 		dt = epicsTimeDiffInSeconds(&now, &start);
-		epicsThreadSleep( epicsThreadSleepQuantum() );
+		if (fptr==NULL)	epicsThreadSleep( epicsThreadSleepQuantum() );
 		//asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s err=%d dt=%.3f (timeout=%.2f) fptr=%p\n",
 		//		driverName, functionName,(int)err,dt,timeout,fptr);
+		pollcount++;
 	}while(fptr == NULL && dt <= timeout && err == DC1394_SUCCESS);
 	this->lock();
 
-	asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s err=%d dt=%.3f (timeout=%.3f) fptr=%p\n",
-			  driverName, functionName,(int)err,dt,timeout,fptr);
+	asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s err=%d dt=%.3f (timeout=%.3f) fptr=%p pollcount=%d\n",
+			  driverName, functionName,(int)err,dt,timeout,fptr, pollcount);
 
 	if (dt > timeout)
 	{
-		asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
-				"%s:%s: timeout! did not receive a frame within %.3fs\n",
-				driverName, functionName, timeout);
 		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
-				"%s:%s Attempting to stop video transmission\n", driverName, functionName);
+				"%s:%s: [%s] timeout! did not receive a frame within %.3fs\n",
+				driverName, functionName, this->portName, timeout);
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
+				"%s:%s [%s] Attempting to stop video transmission\n", 
+				driverName, functionName, this->portName);
 		err=dc1394_video_set_transmission(camera, DC1394_OFF);
 		PERR(this->pasynUserSelf, err);
+		// empty the DMA buffer
+		do
+		{
+			dc1394_capture_dequeue(camera, DC1394_CAPTURE_POLICY_POLL, &fptr);
+		}while (fptr != NULL);
+		
 		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
-				"%s:%s Attempting to restart video transmission\n", driverName, functionName);
+				"%s:%s [%s] Attempting to restart video transmission\n", 
+				driverName, functionName, this->portName);
 		err=dc1394_video_set_transmission(camera, DC1394_ON);
 		PERR(this->pasynUserSelf, err);
+		// Wait a little while to let the camera get started
+		//epicsThreadSleep(0.2);
 	}
 
 	*frame = fptr;
@@ -724,7 +739,7 @@ void FirewireDCAM::imageGrabTask()
 	epicsUInt32 iBandwidth;
 	epicsFloat64 dBandwidthPercent;
 	dc1394video_frame_t * dc1394_frame;
-	epicsFloat64 fr;
+	epicsFloat64 fr, timeout;
 	int stopFromExternalThread = 0; /* The first time, we need this to be 0 so it doesn't signal stop event */
 	const char *functionName = "imageGrabTask";
 
@@ -768,7 +783,8 @@ void FirewireDCAM::imageGrabTask()
 		callParamCallbacks();
 		getDoubleParam((int)DC1394_FEATURE_FRAME_RATE - (int)DC1394_FEATURE_MIN, FDC_feat_val_abs, &fr);
 		if (fr<=0) fr=1;
-		err = this->captureDequeueTimeout(this->camera, &dc1394_frame, 5/fr);
+		timeout = 3./fr;
+		err = this->captureDequeueTimeout(this->camera, &dc1394_frame, timeout);
 		if (err) {
 			/* Frame error */
 			status = PERR( this->pasynUserSelf, err );
@@ -776,7 +792,8 @@ void FirewireDCAM::imageGrabTask()
 		} else if (dc1394_frame==NULL) {
 			/* No frame yet */
 			asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
-					"%s::%s [%s]: camera didn't produce frame. Timed out after %.3f s!\n", driverName, functionName, this->portName, 5/fr);
+					"%s::%s [%s]: camera didn't produce frame. Timed out after %.3f s!\n", 
+					driverName, functionName, this->portName, timeout);
 			continue;
 		}
 
@@ -1170,10 +1187,12 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
     dims[yDim] = dc1394_frame->size[1];
     this->pRaw = this->pNDArrayPool->alloc(ndims, dims, (NDDataType_t)dataType, 0, NULL);
 
-    if (dc1394_frame->frames_behind > 0) {
-    	asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s [%s] %d frames behind!\n",
-					driverName, functionName, this->portName, dc1394_frame->frames_behind);
+    if (dc1394_frame->frames_behind > 0 && this->latch_frames_behind != dc1394_frame->frames_behind) 
+    {
+    	asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s [%s] WARNING: %d frames behind! Buffer length: %d\n",
+					driverName, functionName, this->portName, dc1394_frame->frames_behind, FDC_DC1394_NUM_BUFFERS);
     }
+    this->latch_frames_behind = dc1394_frame->frames_behind;
 
     if (!this->pRaw)
     {
