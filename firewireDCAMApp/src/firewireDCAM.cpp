@@ -592,19 +592,6 @@ asynStatus FirewireDCAM::initCamera(unsigned long long int camUID) {
 	err=dc1394_video_set_iso_speed(this->camera, opSpeed);
 	ERR( err );
 	printf("OK\n");
-/*
-	printf("Setting framerate (7.5): %d...          ", DC1394_FRAMERATE_7_5);
-	fflush(stdout);
-	err=dc1394_video_set_framerate(this->camera, DC1394_FRAMERATE_7_5);
-	ERR( err );
-	printf("OK\n");
-*/
-/*	printf("Preparing capture...                    ");
-	fflush(stdout);
-	err=dc1394_capture_setup(this->camera,FDC_DC1394_NUM_BUFFERS, DC1394_CAPTURE_FLAGS_DEFAULT);
-	ERR( err );
-	printf("OK\n");
-*/
 
 	/* Getting all available features and their information from the camera */
 	err = dc1394_feature_get_all (this->camera, &(this->features));
@@ -677,6 +664,7 @@ dc1394error_t FirewireDCAM::captureDequeueTimeout(dc1394camera_t *camera, dc1394
 	dc1394video_frame_t *fptr;
 	epicsFloat64 dt = 0.0;
 	epicsUInt32 pollcount = 0;
+	epicsUInt32 restartTransmission = 0;
 	const char* functionName = "captureDequeueTimeout";
 	epicsTimeGetCurrent(&start);
 
@@ -698,14 +686,24 @@ dc1394error_t FirewireDCAM::captureDequeueTimeout(dc1394camera_t *camera, dc1394
 	asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s err=%d dt=%.3f (timeout=%.3f) fptr=%p pollcount=%d\n",
 			  driverName, functionName,(int)err,dt,timeout,fptr, pollcount);
 
+	if (err != DC1394_SUCCESS)
+	{
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+				"%s:%s: [%s] Error when dequeuing frame from libdc1394. Attempting to restart video transmission.\n",
+				driverName, functionName, this->portName);
+		restartTransmission = 1;
+	}
+
 	if (dt > timeout)
 	{
-		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
-				"%s:%s: [%s] timeout! did not receive a frame within %.3fs\n",
+		asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+				"%s:%s: [%s] timeout! did not receive a frame within %.3fs Restarting video transmission.\n",
 				driverName, functionName, this->portName, timeout);
-		asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
-				"%s:%s [%s] Attempting to stop video transmission\n", 
-				driverName, functionName, this->portName);
+		restartTransmission = 1;
+	}
+
+	if (restartTransmission)
+	{
 		err=dc1394_video_set_transmission(camera, DC1394_OFF);
 		PERR(this->pasynUserSelf, err);
 		// empty the DMA buffer
@@ -719,8 +717,6 @@ dc1394error_t FirewireDCAM::captureDequeueTimeout(dc1394camera_t *camera, dc1394
 				driverName, functionName, this->portName);
 		err=dc1394_video_set_transmission(camera, DC1394_ON);
 		PERR(this->pasynUserSelf, err);
-		// Wait a little while to let the camera get started
-		//epicsThreadSleep(0.2);
 	}
 
 	*frame = fptr;
@@ -1145,13 +1141,6 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
      * but it could be wrong for this frame if recently changed */
     getIntegerParam(ADBinX, &binX);
     getIntegerParam(ADBinY, &binY);
-
-/*
-    for (int i=0; i<8; i++) {
-    	printf("%d ", ((unsigned char *) dc1394_frame->image)[i]);
-    }
-    printf("dim: %d x %d (%d) cc: %d\n", dc1394_frame->size[0], dc1394_frame->size[1], dc1394_frame->image_bytes, dc1394_frame->color_coding);
-*/
 
     /* Report a new frame with the counters */
     imageCounter++;
