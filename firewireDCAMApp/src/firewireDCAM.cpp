@@ -485,6 +485,7 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 	/* parse the string of hex-numbers that is the cameras unique ID */
 	ret = sscanf(camid, "0x%16llX", &camUID);
 	this->initCamera(camUID);
+	if (this->camera == NULL) return;
 
 	/* Let dc1394 print out the camera info to stdout. This could possibly be
 	 * located in the report function instead but I like to see the info at startup */
@@ -1272,7 +1273,14 @@ asynStatus FirewireDCAM::writeInt32( asynUser *pasynUser, epicsInt32 value)
 	int addr;
 	pasynManager->getAddr(pasynUser, &addr);
 	dc1394error_t err;
-
+	
+	/* check if the camera handle exists */
+	if (this->camera == NULL) {
+		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] Camera handle invalid\n",
+					driverName, "writeInt32", this->portName);
+		return asynError;		
+	}
+	
     /* Set the parameter and readback in the parameter library.
      * This may be overwritten when we read back the
      * status at the end, but that's OK */
@@ -1352,6 +1360,13 @@ asynStatus FirewireDCAM::writeFloat64( asynUser *pasynUser, epicsFloat64 value)
 	epicsFloat64 old_value;
 	int addr;
 	pasynManager->getAddr(pasynUser, &addr);
+	
+	/* check if the camera handle exists */
+	if (this->camera == NULL) {
+		asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s::%s [%s] Camera handle invalid\n",
+					driverName, "writeFloat64", this->portName);
+		return asynError;		
+	}	
 
     /* Set the parameter and readback in the parameter library.
      * This may be overwritten when we read back the
