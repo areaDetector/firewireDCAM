@@ -1,3 +1,3 @@
 # Place any example specific dependencies here
 
-FFMPEGSERVER=$(SUPPORT)/ffmpegServer/1-2
+FFMPEGSERVER=$(SUPPORT)/ffmpegServer/1-2-3
