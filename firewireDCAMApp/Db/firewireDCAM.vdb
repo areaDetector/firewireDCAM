@@ -226,6 +226,58 @@ record(mbbi, "$(P)$(R)ColorMode_RBV") {
   field(SCAN, "I/O Intr")
 }
 
+# Disable some features that aren't used
+record(bo, "$(P)$(R)ReverseX")
+{
+    field(DISA, "1")
+}
+record(bo, "$(P)$(R)ReverseY")
+{
+    field(DISA, "1")
+}
+record(longout, "$(P)$(R)BinX")
+{
+    field(DISA, "1")
+}
+record(longin, "$(P)$(R)BinX_RBV")
+{
+    field(DISA, "1")
+}
+record(longout, "$(P)$(R)BinY")
+{
+    field(DISA, "1")
+}
+record(longin, "$(P)$(R)BinY_RBV")
+{
+    field(DISA, "1")
+}
+record(longout, "$(P)$(R)NumExposures") {
+  field(DISA, "1")
+}  
+record(longin, "$(P)$(R)NumExposures_RBV") {
+  field(DISA, "1")
+}  
+record(longin, "$(P)$(R)NumExposuresCounter_RBV") {
+  field(DISA, "1")
+}
+
+record(calcout, "$(P)$(R)IsFixedMode") {
+  field(INPA, "$(P)$(R)VIDEOMODE CP")
+  field(CALC, "A<88")
+  field(OUT, "$(P)$(R)FanoutDis PP")
+}
+
+record(dfanout, "$(P)$(R)FanoutDis") {
+  field(OUTA, "$(P)$(R)MinX.DISA PP")
+  field(OUTB, "$(P)$(R)MinX_RBV.DISA PP")
+  field(OUTC, "$(P)$(R)MinY.DISA PP")
+  field(OUTD, "$(P)$(R)MinY_RBV.DISA PP")
+  field(OUTE, "$(P)$(R)SizeX.DISA PP")
+  field(OUTF, "$(P)$(R)SizeX_RBV.DISA PP")
+  field(OUTG, "$(P)$(R)SizeY.DISA PP")
+  field(OUTH, "$(P)$(R)SizeY_RBV.DISA PP")
+}
+  
 expand("firewireDCAM_feature.vdb", firewireDCAM_feature0) {
   macro(NUM, "0")
   macro(FEAT, "BRIGHTNESS")
