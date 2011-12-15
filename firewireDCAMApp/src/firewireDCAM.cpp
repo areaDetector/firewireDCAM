@@ -1224,6 +1224,11 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
 
     /* Get any attributes that have been defined for this driver */
     this->getAttributes(this->pRaw->pAttributeList);
+    
+    /* Update image size and image bytes */
+  	setIntegerParam(NDArraySize, dc1394_frame->image_bytes);
+	setIntegerParam(NDArraySizeX, dc1394_frame->size[0]);
+	setIntegerParam(NDArraySizeY, dc1394_frame->size[1]);
 
     /* Call the callbacks to update any changes */
     callParamCallbacks();
