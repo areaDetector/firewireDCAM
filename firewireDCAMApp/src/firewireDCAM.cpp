@@ -199,7 +199,7 @@ void reset_bus()
 	// we can later use to reset each bus.
 	for (i=0;i<list->num; i++)
 	{
-		printf("cam ID: 0x%16.16llX", list->ids[i].guid);
+		printf("cam ID: 0x%16.16lX", list->ids[i].guid);
 		fflush(stdout);
 		cam = dc1394_camera_new (d, list->ids[i].guid);
 		ERR( dc1394_camera_get_node(cam, &node, &generation) );
@@ -245,7 +245,7 @@ void reset_bus()
 	camListItem = (camNode_t*)ellFirst(&camList);
 	while(camListItem != NULL)
 	{
-		printf("Resetting bus: %3d using cam: 0x%16.16llX... ", camListItem->generation, camListItem->cam->guid);
+		printf("Resetting bus: %3d using cam: 0x%16.16lX... ", camListItem->generation, camListItem->cam->guid);
 		fflush(stdout);
 		ERR( dc1394_reset_bus(camListItem->cam) );
 		printf("Done\n");
@@ -1115,7 +1115,7 @@ int FirewireDCAM::decodeFrame(dc1394video_frame_t * dc1394_frame)
 	int status = asynSuccess;
 //	int minX, minY, sizeX, sizeY;
 	int ndims;
-	int dims[3];
+	size_t dims[3];
     int arrayCallbacks, imageCounter, numImages, numImagesCounter, imageMode;
     int colorMode, dataType, bayerFormat;
     int xDim=0, yDim=1, binX, binY;

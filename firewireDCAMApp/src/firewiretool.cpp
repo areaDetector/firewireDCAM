@@ -241,7 +241,7 @@ int allocate_cams(dc1394_t *bus, dc1394camera_list_t *list, dc1394camera_t **cam
         {
             ERR( dc1394_camera_get_node(camera, &node, &generation) );
             if (verbose > 0)
-                printf(" 0x%16.16llX |%19s |%25s |%8d |%8d |\n",
+                printf(" 0x%16.16lX |%19s |%25s |%8d |%8d |\n",
                         camera->guid, camera->vendor, camera->model, node, generation);
             cams[cnt] = camera;
             cnt++;
@@ -326,7 +326,7 @@ void reset_bus()
     camListItem = (camNode_t*)ellFirst(&camList);
     while(camListItem != NULL)
     {
-        printf("Resetting bus: %3d using cam: 0x%16.16llX... ", camListItem->generation, camListItem->cam->guid);
+        printf("Resetting bus: %3d using cam: 0x%16.16lX... ", camListItem->generation, camListItem->cam->guid);
         fflush(stdout);
         ERR( dc1394_reset_bus(camListItem->cam) );
         printf("Done\n");
@@ -351,7 +351,7 @@ dc1394camera_t* findcam(dc1394camera_t **cams, int ncams, char* guid)
     // First parse the GUI string into a 64bit integer if possible
     if (guid != NULL)
     {
-        ret = sscanf(guid, "0x%16llX", &iguid);
+        ret = sscanf(guid, "0x%16lX", &iguid);
         if (ret != 1)
         {
             fprintf(stderr, "ERROR [%s:%d] could not parse GUID string: \"%s\"\n", __FILE__, __LINE__, guid);
@@ -386,7 +386,7 @@ void reportModes(dc1394camera_t *cam)
 
     ERR( dc1394_video_get_supported_modes(cam, &video_modes) );
 
-    printf("\n    Supported modes for camera: 0x%16.16llX %20s\n", cam->guid, cam->model);
+    printf("\n    Supported modes for camera: 0x%16.16lX %20s\n", cam->guid, cam->model);
     for (i=0;i<tblWidth;i++) printf("_");
     printf( "\n");
 

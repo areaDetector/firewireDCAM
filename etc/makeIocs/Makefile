@@ -5,8 +5,8 @@ include $(TOP)/configure/CONFIG
 include $(TOP)/etc/makeIocs/Makefile.iocs
 
 # this is the dls-xml-iocbuilder.py file
-XMLBUILDER := dls-xml-iocbuilder.py
-#XMLBUILDER := /dls_sw/work/common/python/iocbuilder/xmlbuilder/xmlbuilder.py
+#XMLBUILDER := dls-xml-iocbuilder.py
+XMLBUILDER := /dls_sw/work/common/python/iocbuilder/xmlbuilder/xmlbuilder.py
 
 # set to -d to get debugging
 DEBUG :=
@@ -26,7 +26,7 @@ include $(TOP)/configure/RULES
 # General rule for building a Simulation IOC from an XML file
 ../../makeIocs/O.Common/%_sim: ../%.xml
 	$(RMDIR) ../O.Common/tmp $@
-	$(XMLBUILDER) $(DEBUG) --sim=linux-x86 -e -o ../O.Common/tmp $<
+	$(XMLBUILDER) $(DEBUG) -e -o ../O.Common/tmp $<
 	$(MV) ../O.Common/tmp/$(*F)_sim $@
 
 # Alternate rule for building a Standard IOC from a python file

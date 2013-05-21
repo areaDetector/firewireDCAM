@@ -1,12 +1,12 @@
 <?xml version="1.0" ?>
-<components arch="linux-x86">
+<components arch="linux-x86_64">
 	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00B09D01008118C9" P="TESTFWDCAM1" PORT="CAM1.CAM" R=":CAM:" TIMEOUT="1" disableScalable="1"/>
-	<firewireDCAM.firewireDCAM ADDR="0" ID="0x00B09D01006BBC47" P="TESTFWDCAM2" PORT="CAM2.CAM" R=":CAM:" TIMEOUT="1" disableScalable="1"/>
+	<!--<firewireDCAM.firewireDCAM ADDR="0" ID="0x00B09D01006BBC47" P="TESTFWDCAM2" PORT="CAM2.CAM" R=":CAM:" TIMEOUT="1" disableScalable="1"/>-->
 	<areaDetector.NDColorConvert ADDR="0" Enabled="1" NDARRAY_ADDR="0" NDARRAY_PORT="CAM1.CAM" P="TESTFWDCAM1" PORT="CAM1.CC" R=":CC:" TIMEOUT="1"/>
-	<areaDetector.NDColorConvert ADDR="0" Enabled="1" NDARRAY_ADDR="0" NDARRAY_PORT="CAM2.CAM" P="TESTFWDCAM2" PORT="CAM2.CC" R=":CC:" TIMEOUT="1"/>
+	<!--<areaDetector.NDColorConvert ADDR="0" Enabled="1" NDARRAY_ADDR="0" NDARRAY_PORT="CAM2.CAM" P="TESTFWDCAM2" PORT="CAM2.CC" R=":CC:" TIMEOUT="1"/>-->
 	<areaDetector.NDStdArrays ADDR="0" Enabled="1" FTVL="USHORT" NDARRAY_ADDR="0" NDARRAY_PORT="CAM1.CAM" NELEMENTS="1228800" P="TESTFWDCAM1" PORT="CAM1.ARR" R=":ARR:" TIMEOUT="1" TYPE="Int16"/>
-	<areaDetector.NDStdArrays ADDR="0" Enabled="1" FTVL="USHORT" NDARRAY_ADDR="0" NDARRAY_PORT="CAM2.CAM" NELEMENTS="1228800" P="TESTFWDCAM2" PORT="CAM2.ARR" R=":ARR:" TIMEOUT="1" TYPE="Int16"/>
-	<ffmpegServer.ffmpegStream ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM1.CC" P="TESTFWDCAM1" PORT="CAM1.MJPG" R=":MJPG:" TIMEOUT="1"/>
-	<ffmpegServer.ffmpegStream ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM2.CC" P="TESTFWDCAM2" PORT="CAM2.MJPG" R=":MJPG:" TIMEOUT="1"/>
+	<!--<areaDetector.NDStdArrays ADDR="0" Enabled="1" FTVL="USHORT" NDARRAY_ADDR="0" NDARRAY_PORT="CAM2.CAM" NELEMENTS="1228800" P="TESTFWDCAM2" PORT="CAM2.ARR" R=":ARR:" TIMEOUT="1" TYPE="Int16"/>-->
+	<ffmpegServer.ffmpegStream ADDR="0" HTTP_PORT="8081" NDARRAY_ADDR="0" NDARRAY_PORT="CAM1.CC" P="TESTFWDCAM1" PORT="CAM1.MJPG" R=":MJPG:" TIMEOUT="1"/>
+	<!--<ffmpegServer.ffmpegStream ADDR="0" NDARRAY_ADDR="0" NDARRAY_PORT="CAM2.CC" P="TESTFWDCAM2" PORT="CAM2.MJPG" R=":MJPG:" TIMEOUT="1"/>-->
 	<!--<EPICS_BASE.StartupCommand command="asynSetTraceMask(&quot;CAM1.CAM&quot;,0,0x11)" post_init="True"/>-->
 </components>

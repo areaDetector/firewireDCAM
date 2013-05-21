@@ -9,25 +9,16 @@
 # module defined in the RELEASE file is rebuilt.
 
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
-SUPPORT=/dls_sw/prod/R3.14.11/support
-WORK=/dls_sw/work/R3.14.11/support
+SUPPORT=/dls_sw/prod/R3.14.12.3/support
+WORK=/dls_sw/work/R3.14.12.3/support
 
-ASYN           = $(SUPPORT)/asyn/4-14
-AREADETECTOR   = $(SUPPORT)/areaDetector/1-6
-BUSY           = $(SUPPORT)/busy/1-3dls3
-FIREWIREDCAM   = $(WORK)/firewireDCAM
-
-# Linux Firewire DCAM (IIDC) libraries dc1394 and raw1394 has
-# been build into a similar directory structure as most common
-# EPICS support modules. So all we need to do is list them here
-# as any other module and include the libraries in the usual manner
-# in the various src/Makefiles...
-DC1394         = $(SUPPORT)/dc1394/2-1-2
-RAW1394        = $(SUPPORT)/raw1394/1-3-0
-
-CALC           = $(SUPPORT)/calc/2-8dls2
-SSCAN          = $(SUPPORT)/sscan/2-6-6dls1
+ASYN           = $(SUPPORT)/asyn/4-21
+AREADETECTOR   = $(SUPPORT)/areaDetector/1-9dls1
+BUSY           = $(SUPPORT)/busy/1-4dls1
+CALC           = $(SUPPORT)/calc/3-1
+SSCAN          = $(SUPPORT)/sscan/2-8-1
+FIREWIREDCAM   = $(TOP)/..
 
 # EPICS_BASE usually appears last so other apps can override stuff:
-EPICS_BASE=/dls_sw/epics/R3.14.11/base
+EPICS_BASE=/dls_sw/epics/R3.14.12.3/base
 -include $(TOP)/configure/RELEASE.private

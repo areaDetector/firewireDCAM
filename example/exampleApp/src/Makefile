@@ -13,56 +13,27 @@ PROD_IOC = example
 DBD += example.dbd
 
 # example.dbd will be created from these files
-example_DBD += base.dbd
-example_DBD += asyn.dbd
+example_DBD += commonDriverSupport.dbd
 example_DBD += firewireDCAM.dbd
-example_DBD += ADSupport.dbd
-example_DBD += pluginSupport.dbd
-example_DBD += calcSupport.dbd
-example_DBD += sscan.dbd
-example_DBD += busySupport.dbd
-
 
 # example_registerRecordDeviceDriver.cpp will be created
-# example.dbd
 example_SRCS += example_registerRecordDeviceDriver.cpp
 
 # These two lines are needed for non-vxWorks builds, such as Linux
 example_SRCS_DEFAULT += exampleMain.cpp
 example_SRCS_vxWorks += -nil-
 
-# Add locally compiled object code
-#example_SRCS +=
-
 # The following adds object code from base/src/vxWorks
 example_OBJS_vxWorks += $(EPICS_BASE_BIN)/vxComLibrary
 
-# Point to where we can find the libdc1394 library files and 
-# include files. 
-# Note: this is not necessary if we have build dc1394 to look
-# like an EPICS module with lib/linux-x86/ and include/ directories...
-#dc1394_DIR = /where/libdc1394/is/installed/lib
-#USR_LIBS_Linux += dc1394
-#USR_INCLUDES_Linux += /where/libdc1394/is/installed/includes
-
 # This line says that this IOC Application depends on the
 # xxx Support Module
-example_LIBS += asyn
 example_LIBS += firewireDCAM
-example_LIBS += NDPlugin ADBase
-example_LIBS += calc sscan busy
-# Comment next line out if libdc1394 is *not* build as an EPICS module
-example_LIBS += dc1394
-
-# Libraries supplied by areaDetector
-# We are not using them but they have to be declared to find the symbols
-# in libNDPlugin.
-example_LIBS_Linux += NeXus mfhdf df hdf5 mxml PvAPI ImageLib
-# Libraries from the host system which areaDetector (libNDPlugin) require
-example_SYS_LIBS_Linux += tiff jpeg z
 
 # We need to link this IOC Application against the EPICS Base libraries
 example_LIBS += $(EPICS_BASE_IOC_LIBS)
+
+include $(AREADETECTOR)/ADApp/commonDriverMakefile
 
 # ---------------------------------------------------
 

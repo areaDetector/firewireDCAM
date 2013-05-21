@@ -2,7 +2,6 @@ from iocbuilder import Device, AutoSubstitution, SetSimulation
 from iocbuilder.arginfo import *
 
 from iocbuilder.modules.areaDetector import AreaDetector, _ADBase, simDetector
-from iocbuilder.modules.dc1394 import Dc1394
 
 class _firewireDCAM(AutoSubstitution):
     TemplateFile="firewireDCAM.template"
@@ -10,7 +9,6 @@ class _firewireDCAM(AutoSubstitution):
 class firewireDCAM(_ADBase):
     '''Creates a firewireDCAM camera areaDetector driver'''
     _SpecificTemplate = _firewireDCAM
-    Dependencies = (Dc1394,)    
     def __init__(self, ID, SPEED = 800, disableScalable = 0, BUFFERS = 50, MEMORY = -1, **args):
         # Init the superclass
         self.__super.__init__(**args)
