@@ -452,7 +452,7 @@ FirewireDCAM::FirewireDCAM(	const char *portName, const char* camid, int speed,
 			0, 0, // interfacemask and interruptmask
 			ASYN_MULTIDEVICE | ASYN_CANBLOCK, 1, // asynflags and autoconnect,
 			0, 0),// thread priority and stack size
-		pRaw(NULL)
+		pRaw(NULL), camera(NULL)
 {
 	const char *functionName = "FirewireDCAM";
 	unsigned long long int camUID = 0;
