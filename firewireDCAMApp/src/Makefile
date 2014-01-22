@@ -1,6 +1,7 @@
 TOP=../..
-
 include $(TOP)/configure/CONFIG
+#----------------------------------------
+# ADD MACRO DEFINITIONS AFTER THIS LINE
 
 dc1394_DIR=$(DC1394)/lib
 USR_CFLAGS_Linux += -std=gnu89
@@ -8,7 +9,7 @@ USR_CFLAGS_Linux += -std=gnu89
 #--------------------------------------------------------
 # Build a little tool to do various firewire bus checks
 #--------------------------------------------------------
-PROD_IOC += firewiretool
+PROD_IOC_Linux += firewiretool
 firewiretool_SRCS_DEFAULT += firewiretool.cpp
 firewiretool_LIBS += dc1394
 firewiretool_LIBS += $(EPICS_BASE_IOC_LIBS)
@@ -18,30 +19,26 @@ firewiretool_LIBS += $(EPICS_BASE_IOC_LIBS)
 #testCams_LIBS += dc1394
 #testCams_LIBS += $(EPICS_BASE_IOC_LIBS)
 
-
 # -------------------------------
-# Build a Diamond Support Module
+# Build the Support Module
 # -------------------------------
-
-LIBRARY_IOC += firewireDCAM
-
-# xxxRecord.dbd will be installed into <top>/dbd
+LIBRARY_IOC_Linux += firewireDCAM
 DBD += firewireDCAM.dbd
-DBD += firewireDCAM_vdct.dbd
-firewireDCAM_vdct_DBD += base.dbd
-firewireDCAM_vdct_DBD += asyn.dbd
-firewireDCAM_vdct_DBD += NDPluginSupport.dbd
 
-# The following are compiled and added to the support library
-firewireDCAM_SRCS += drvFirewireDCAM.c
-firewireDCAM_SRCS += firewireDCAM.cpp
+LIB_SRCS += drvFirewireDCAM.c
+LIB_SRCS += firewireDCAM.cpp
 
-# linking against various basic support libraries
-firewireDCAM_LIBS += asyn
-firewireDCAM_LIBS += ADBase netCDF
-firewireDCAM_LIBS += dc1394
-firewireDCAM_LIBS += $(EPICS_BASE_IOC_LIBS)
+#include $(ADCORE)/ADApp/commonLibraryMakefile
+# (ulrik:) I think the commonLibraryMakefile include much more
+# than it really need to, causing some artificial dependencies
+# that may cause trouble later. Or maybe I've misunderstood something...
+# In my case the following two lines are all that is required:
+LIB_LIBS += ADBase
+LIB_LIBS += asyn
+LIB_LIBS += dc1394
 
-#include $(AREA_DETECTOR)/ADApp/commonDriverMakefile
+#=============================
 
 include $(TOP)/configure/RULES
+#----------------------------------------
+# ADD RULES AFTER THIS LINE
