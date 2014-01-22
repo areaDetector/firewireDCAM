@@ -14,7 +14,7 @@ Please note that for new applications, the author recommends going for the faste
 
 Firewire IEEE1394 Cameras
 =========================
-This module uses a set of open source libraries to control the cameras. The main library is libdc1394: http://damien.douxchamps.net/ieee1394/libdc1394">libdc1394
+This module uses a set of open source libraries to control the cameras. The main library is <a href="http://damien.douxchamps.net/ieee1394/libdc1394">libdc1394</a>
 
 libdc1394 is able to control firewire cameras that comply with the IIDC DCAM protocol. Please see the libdc1394 <a href="http://damien.douxchamps.net/ieee1394/cameras/">list of cameras</a> and the <a href="http://damien.douxchamps.net/ieee1394/libdc1394/v2.x/faq/">libdc1394 FAQ</a> for more details about which cameras can be used with libdc1394 (note that the developer of this module has only tested with a limited number of camera models: Point Grey Flea2 and AVR Pike)
 
