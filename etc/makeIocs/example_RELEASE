@@ -1,2 +1,2 @@
 # Place any example specific dependencies here
-FFMPEGSERVER=$(SUPPORT)/ffmpegServer/1-16-1
+AREADETECOR=/scratch/ad/ADCore
