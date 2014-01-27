@@ -25,6 +25,14 @@ firewiretool_LIBS += $(EPICS_BASE_IOC_LIBS)
 LIBRARY_IOC_Linux += firewireDCAM
 DBD += firewireDCAM.dbd
 
+# This is to make the VDCT flatdb script happy
+# VDCT/flatdb is used to expand the 'feature' template multiple times
+# in the main firewireDCAM.template
+DBD += firewireDCAM_vdct.dbd
+firewireDCAM_vdct_DBD += base.dbd
+firewireDCAM_vdct_DBD += asyn.dbd
+firewireDCAM_vdct_DBD += NDPluginSupport.dbd
+
 LIB_SRCS += drvFirewireDCAM.c
 LIB_SRCS += firewireDCAM.cpp
 

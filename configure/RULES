@@ -4,3 +4,13 @@ include $(CONFIG)/RULES
 
 # Library should be rebuilt because LIBOBJS may have changed.
 $(LIBNAME): ../Makefile
+
+# flatten any vdb files into a template file
+$(COMMON_DIR)/%.template: %.vdb $(VDB_DEPS)
+	@echo "Flattening $< to produce $@ " 
+	flatdb --disable-macro-warnings $< $@ 
+
+$(COMMON_DIR)/%.db: ../%.vdb $(VDB_DEPS)
+	@echo "Flattening $< to produce $@ " 
+	flatdb --disable-macro-warnings $< $@ 
+
