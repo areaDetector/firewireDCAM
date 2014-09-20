@@ -3,7 +3,7 @@ include $(TOP)/configure/CONFIG
 #----------------------------------------
 # ADD MACRO DEFINITIONS AFTER THIS LINE
 
-dc1394_DIR=$(DC1394)/lib
+dc1394_DIR=$(DC1394)
 USR_CFLAGS_Linux += -std=gnu89
 
 #--------------------------------------------------------
@@ -11,7 +11,7 @@ USR_CFLAGS_Linux += -std=gnu89
 #--------------------------------------------------------
 PROD_IOC_Linux += firewiretool
 firewiretool_SRCS_DEFAULT += firewiretool.cpp
-firewiretool_LIBS += dc1394
+firewiretool_SYS_LIBS += dc1394
 firewiretool_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #PROD_IOC += testCams
