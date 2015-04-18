@@ -77,6 +77,9 @@
 # #
 # This associates the template with an edm screen
 # % gui, $(PORT), edmtab, firewireDCAM.edl, P=$(P),R=$(R)
+
+include "ADBase.template"
+
 # #
 # # Change the max framerate when the camera is not in the ROI/format7 mode
 # % gdatag, mbbinary, rw, $(PORT)_firewireDCAM, FR, Set frame rate
