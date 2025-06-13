@@ -7,6 +7,8 @@ This areaDetector driver was previously published and hosted here: http://contro
 
 See the release notes [here](RELEASE_NOTES.md)
 
+**This repository is no longer active and was archived on June 13, 2025.**
+
 Introduction
 ============
 
